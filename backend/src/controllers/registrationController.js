@@ -75,19 +75,39 @@ exports.createRegistration = async (req, res) => {
 
         // NẾU LÀ CHUYỂN KHOẢN -> TẠO LINK PAYOS
         if (PaymentMethod === 'Transfer') {
-            orderCode = Number(String(Date.now()).slice(-9)); // PayOS orderCode phải là số nguyên tối đa 10 chữ số
+            // PayOS orderCode phải là số nguyên tối đa 10 chữ số
+            orderCode = Number(String(Date.now()).slice(-9)); 
+            
             const student = await Student.findByPk(StudentID);
             
+            // PayOS chỉ chấp nhận mô tả KHÔNG DẤU, không ký tự đặc biệt
+            const removeAccents = (str) => {
+                return str.normalize('NFD')
+                          .replace(/[\u0300-\u036f]/g, '')
+                          .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                          .replace(/[^a-zA-Z0-9 ]/g, '');
+            };
+
+            const cleanName = removeAccents(student.FullName || 'Student').slice(0, 15);
+            const description = `Meal ${Month.replace('-','')} ${cleanName}`;
+
             const paymentBody = {
                 orderCode: orderCode,
                 amount: totalPrice,
-                description: `Meal ${Month.replace('-','')} ${student.FullName.slice(0,10)}`,
+                description: description,
                 returnUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/parent/registrations`,
                 cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/parent/registrations`,
             };
 
-            const linkData = await payos.createPaymentLink(paymentBody);
-            payosLink = linkData.checkoutUrl;
+            console.log('[PayOS] Đang tạo link thanh toán:', paymentBody);
+            
+            try {
+                const linkData = await payos.createPaymentLink(paymentBody);
+                payosLink = linkData.checkoutUrl;
+            } catch (payosErr) {
+                console.error('[PayOS] Lỗi tạo link:', payosErr.message, payosErr.data);
+                throw new Error(`PayOS Error: ${payosErr.message}`);
+            }
         }
         
         const newReg = await MealRegistration.create({
