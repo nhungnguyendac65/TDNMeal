@@ -5,11 +5,11 @@ const { sequelize } = require('../config/database');
 // 1. IMPORT TẤT CẢ CÁC BẢNG (MODELS)
 // ==========================================
 // Các bảng cũ (Dạng Class, không có đuôi sequelize)
-const User = require('./user');
-const Student = require('./student');
-const AllergyCategory = require('./allergyCategory');
-const Supplier = require('./supplier');
-const Ingredient = require('./ingredient');
+const User = require('./User');
+const Student = require('./Student');
+const AllergyCategory = require('./AllergyCategory');
+const Supplier = require('./Supplier');
+const Ingredient = require('./Ingredient');
 const Dish = require('./Dish');
 const DailyMenu = require('./DailyMenu');
 
