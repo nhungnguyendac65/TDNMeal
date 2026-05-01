@@ -102,7 +102,7 @@ exports.createRegistration = async (req, res) => {
             console.log('[PayOS] Đang tạo link thanh toán:', paymentBody);
             
             try {
-                const linkData = await payos.createPaymentLink(paymentBody);
+                const linkData = await payos.paymentRequests.create(paymentBody);
                 payosLink = linkData.checkoutUrl;
             } catch (payosErr) {
                 console.error('[PayOS] Lỗi tạo link:', payosErr.message, payosErr.data);
