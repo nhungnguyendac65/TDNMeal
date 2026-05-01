@@ -1,4 +1,4 @@
-const PayOS = require('@payos/node');
+const { PayOS } = require('@payos/node');
 require('dotenv').config();
 
 const payos = new PayOS(
