@@ -128,7 +128,10 @@ exports.createRegistration = async (req, res) => {
         });
     } catch (error) {
         console.error('Lỗi PayOS/DB:', error);
-        res.status(500).json({ message: 'Lỗi khởi tạo đăng ký và thanh toán.' });
+        res.status(500).json({ 
+            message: error.message || 'Lỗi khởi tạo đăng ký và thanh toán.',
+            details: error.data || null
+        });
     }
 };
 
