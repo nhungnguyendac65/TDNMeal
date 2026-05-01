@@ -46,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
     // Bất kỳ route nào không phải API thì trả về file index.html của React
-    app.get('(.*)', (req, res) => {
+    app.get('/:path*', (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
         }
