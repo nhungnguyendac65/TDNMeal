@@ -2,9 +2,9 @@ const { Sequelize, DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 // ==========================================
-// 1. IMPORT TẤT CẢ CÁC BẢNG (MODELS)
+// 1. IMPORT ALL MODELS
 // ==========================================
-// Các bảng cũ (Dạng Class, không có đuôi sequelize)
+// Legacy models (Class-based)
 const User = require('./User');
 const Student = require('./Student');
 const AllergyCategory = require('./AllergyCategory');
@@ -14,58 +14,58 @@ const Dish = require('./Dish');
 const DailyMenu = require('./DailyMenu');
 
 
-// Các bảng mới (Dạng Function, bắt buộc có đuôi sequelize)
+// New models (Function-based with sequelize)
 const StudentAllergy = require('./studentAllergy')(sequelize);
 const MealRegistration = require('./mealRegistration')(sequelize);
 const DailyMealSelection = require('./dailyMealSelection')(sequelize); 
 
 // ==========================================
-// 2. KHAI BÁO MỐI QUAN HỆ (RELATIONSHIPS)
+// 2. DEFINE RELATIONSHIPS
 // ==========================================
-// [ĐÃ SỬA]: Thêm as: 'children' và as: 'parent' để Controller gọi được
-// Phụ huynh - Học sinh
+// Fixed: Added aliases 'children' and 'parent' for controller access
+// Parent - Student
 User.hasMany(Student, { foreignKey: 'ParentID', as: 'children' });
 Student.belongsTo(User, { foreignKey: 'ParentID', as: 'parent' });
 
-// Học sinh - Dị ứng
+// Student - Allergy
 Student.hasMany(StudentAllergy, { foreignKey: 'StudentID' });
 StudentAllergy.belongsTo(Student, { foreignKey: 'StudentID' });
 
-// Nhóm dị ứng - Chi tiết dị ứng
+// Allergy Category - Allergy Detail
 AllergyCategory.hasMany(StudentAllergy, { foreignKey: 'CategoryID' });
 StudentAllergy.belongsTo(AllergyCategory, { foreignKey: 'CategoryID' });
 
-// Nhóm dị ứng - Nguyên liệu
+// Allergy Category - Ingredient
 AllergyCategory.hasMany(Ingredient, { foreignKey: 'CategoryID' });
 Ingredient.belongsTo(AllergyCategory, { foreignKey: 'CategoryID' });
 
-// Học sinh - Đăng ký suất ăn tháng
+// Student - Monthly Meal Registration
 Student.hasMany(MealRegistration, { foreignKey: 'StudentID' });
 MealRegistration.belongsTo(Student, { foreignKey: 'StudentID' });
 
-// Đăng ký tháng - Chọn món từng ngày (1 phiếu đăng ký tháng có ~22 ngày chọn món)
+// Monthly Registration - Daily Selection (1 registration covers ~22 daily selections)
 MealRegistration.hasMany(DailyMealSelection, { foreignKey: 'RegistrationID' });
 DailyMealSelection.belongsTo(MealRegistration, { foreignKey: 'RegistrationID' });
 
-// Học sinh - Chọn món từng ngày
+// Student - Daily Selection
 Student.hasMany(DailyMealSelection, { foreignKey: 'StudentID' });
 DailyMealSelection.belongsTo(Student, { foreignKey: 'StudentID' });
 
 // ==========================================
-// 3. HÀM ĐỒNG BỘ DATABASE TỰ ĐỘNG
+// 3. AUTOMATIC DATABASE SYNC FUNCTION
 // ==========================================
 const syncDatabase = async () => {
     try {
         await sequelize.sync({ alter: true }).then(() => {
-            console.log('Đã đồng bộ Database và thiết lập các mối quan hệ thành công!');
+            console.log('Database synced and relationships established successfully!');
         });
     } catch (error) {
-        console.error('Lỗi đồng bộ Database:', error);
+        console.error('Database sync error:', error);
     }
 };
 
 // ==========================================
-// 4. XUẤT (EXPORT) ĐỂ CÁC NƠI KHÁC SỬ DỤNG
+// 4. EXPORT MODELS
 // ==========================================
 module.exports = {
     sequelize,

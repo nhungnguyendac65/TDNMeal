@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database'); // (Nhớ kiểm tra lại đường dẫn file database của bạn nha)
+const { sequelize } = require('../config/database'); 
 
 const Ingredient = sequelize.define('Ingredient', {
     IngredientID: {

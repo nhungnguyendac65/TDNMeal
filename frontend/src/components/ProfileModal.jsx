@@ -37,10 +37,10 @@ export default function ProfileModal({ isOpen, onClose }) {
     setMessage({ text: '', type: '' });
 
     try {
-      console.log("Đang gửi dữ liệu cập nhật:", {
+      console.log("Sending update data:", {
         FullName: formData.fullName,
         Phone: formData.phone,
-        Password: formData.password ? '******' : '(không đổi)'
+        Password: formData.password ? '******' : '(unchanged)'
       });
 
       const res = await api.put('/auth/profile', {
@@ -49,11 +49,11 @@ export default function ProfileModal({ isOpen, onClose }) {
         Password: formData.password
       });
 
-      console.log("Kết quả từ Server:", res.data);
+      console.log("Server response:", res.data);
 
-      setMessage({ text: 'Chúc mừng! Cập nhật mật khẩu và hồ sơ thành công.', type: 'success' });
+      setMessage({ text: 'Congratulations! Profile and password updated successfully.', type: 'success' });
       
-      // Cập nhật lại localStorage với đầy đủ thông tin mới nhất
+      // Update localStorage with new info
       const currentUser = JSON.parse(localStorage.getItem('user')) || {};
       const updatedUser = { 
         ...currentUser, 
@@ -63,9 +63,9 @@ export default function ProfileModal({ isOpen, onClose }) {
       };
       
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      console.log("Đã cập nhật LocalStorage:", updatedUser);
+      console.log("LocalStorage updated:", updatedUser);
       
-      // Bắn sự kiện để các Component khác biết mà load lại tên hiển thị (nếu có)
+      // Dispatch event to notify other components
       window.dispatchEvent(new Event('userUpdated'));
 
       setTimeout(() => {
@@ -73,15 +73,15 @@ export default function ProfileModal({ isOpen, onClose }) {
       }, 1500);
 
     } catch (err) {
-      console.error("LỖI CẬP NHẬT HỒ SƠ:", err);
-      const errorMsg = err.response?.data?.message || 'Lỗi kết nối server hoặc dữ liệu không hợp lệ.';
+      console.error("PROFILE UPDATE ERROR:", err);
+      const errorMsg = err.response?.data?.message || 'Server connection error or invalid data.';
       setMessage({ 
         text: errorMsg, 
         type: 'error' 
       });
-      // Nếu là lỗi 401 thì có thể token hết hạn
+      // If 401, token might be expired
       if (err.response?.status === 401) {
-        alert("Phiên làm việc hết hạn, vui lòng đăng nhập lại.");
+        alert("Session expired, please login again.");
         localStorage.clear();
         window.location.href = '/login';
       }
@@ -94,7 +94,7 @@ export default function ProfileModal({ isOpen, onClose }) {
     <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
       <div className="bg-white rounded-md w-full max-w-md shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-          <h2 className="text-lg font-bold text-slate-800">Thay đổi mật khẩu</h2>
+          <h2 className="text-lg font-bold text-slate-800">Update Profile</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
         </div>
         
@@ -106,7 +106,7 @@ export default function ProfileModal({ isOpen, onClose }) {
           )}
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Họ và Tên</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
             <input 
               type="text" 
               name="fullName"
@@ -118,7 +118,7 @@ export default function ProfileModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Số điện thoại / Tên đăng nhập</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Phone / Username</label>
             <input 
               type="text" 
               name="phone"
@@ -130,16 +130,16 @@ export default function ProfileModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Mật khẩu mới</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1">New Password</label>
             <input 
               type="password" 
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Nhập mật khẩu mới tại đây"
+              placeholder="Enter new password here"
               className="w-full px-3 py-2 border border-slate-200 rounded outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm placeholder:text-slate-400"
             />
-            <p className="text-[11px] text-slate-400 mt-1">Để trống nếu bạn chỉ muốn cập nhật tên hoặc số điện thoại.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Leave blank if you only want to update name or phone.</p>
           </div>
 
           <div className="pt-4 flex justify-end gap-3">
@@ -148,14 +148,14 @@ export default function ProfileModal({ isOpen, onClose }) {
               onClick={onClose}
               className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded transition-colors"
             >
-              Hủy
+              Cancel
             </button>
             <button 
               type="submit" 
               disabled={isLoading}
               className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Đang lưu...' : 'Cập nhật ngay'}
+              {isLoading ? 'Saving...' : 'Update Now'}
             </button>
           </div>
         </form>

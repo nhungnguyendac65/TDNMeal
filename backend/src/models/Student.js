@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/Student.js
+// Path: backend/src/models/Student.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -19,19 +19,19 @@ const Student = sequelize.define('Student', {
     ClassRoom: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: 'Chưa xếp lớp' // Đề phòng các data cũ bị rỗng
+        defaultValue: 'Unassigned' // Fallback for missing old data
     },
     Height: {
-        type: DataTypes.FLOAT, // Chiều cao (cm)
+        type: DataTypes.FLOAT, // Height (cm)
         allowNull: true
     },
     Weight: {
-        type: DataTypes.FLOAT, // Cân nặng (kg)
+        type: DataTypes.FLOAT, // Weight (kg)
         allowNull: true
     },
     HealthProfileCompleted: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false // Dùng để check First Login Flow
+        defaultValue: false // For First Login Flow check
     },
     MealStatus: {
         type: DataTypes.STRING,

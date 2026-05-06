@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/Class.js
+// Path: backend/src/models/Class.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

@@ -1,30 +1,30 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
-// IMPORT FILE TỪ CÁC THƯ MỤC
+// IMPORT FILES FROM DIRECTORIES
 import Login from './pages/Login';
 
-// CỦA PHỤ HUYNH
+// PARENT PORTAL
 import ParentDashboard from './pages/parent-portal/Dashboard';
 import MealSchedule from './pages/parent-portal/MealSchedule';
 import MealRegistration from './pages/parent-portal/MealRegistration';
 import Onboarding from './pages/parent-portal/Onboarding';
 
-// CỦA NHÀ BẾP
+// KITCHEN PORTAL
 import KitchenDashboard from './pages/kitchen-portal/Dashboard';
 import KitchenDishes from './pages/kitchen-portal/DishManagement';
 import DailyMenuCreator from './pages/kitchen-portal/DailyMenuCreator';
 import WeeklyMenu from './pages/kitchen-portal/WeeklyMenu';
 import IngredientManagement from './pages/kitchen-portal/IngredientManagement';
 
-// CỦA ADMIN
+// ADMIN PORTAL
 import AdminDashboard from './pages/admin-portal/AdminDashboard';
 import UserManagement from './pages/admin-portal/UserManagement';
 import StudentManagement from './pages/admin-portal/StudentManagement';
 import MenuManagement from './pages/admin-portal/MenuManagement';
-import PaymentManagement from './pages/admin-portal/PaymentManagement'; // [THÊM ROUTE THANH TOÁN]
+import PaymentManagement from './pages/admin-portal/PaymentManagement'; // [ADD PAYMENT ROUTE]
 
-// 1. PUBLIC ROUTE: Chặn người đã login quay lại trang Login
+// 1. PUBLIC ROUTE: Prevents logged-in users from accessing the Login page
 const PublicRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   const userJson = localStorage.getItem('user');
@@ -41,7 +41,7 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// 2. PROTECTED ROUTE: Phân quyền truy cập
+// 2. PROTECTED ROUTE: Role-based access control
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userJson = localStorage.getItem('user');
@@ -54,7 +54,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = JSON.parse(userJson);
   const userRole = user.Role || user.role;
 
-  // Nếu vai trò không nằm trong danh sách cho phép
+  // If role is not in the allowed list
   if (!allowedRoles.includes(userRole)) {
     if (userRole === 'Admin') return <Navigate to="/admin/dashboard" replace />;
     if (userRole === 'Teacher') return <Navigate to="/admin/students" replace />;
@@ -63,8 +63,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Đặc biệt cho Phụ huynh: Nếu đã xong Onboarding mà gõ link tay /onboarding thì đá về Dashboard
-  // Trừ khi đi từ nút "Sửa thông tin" (có truyền state allowUpdate)
+  // Special for Parents: If Onboarding is completed and user tries to access /onboarding, redirect to Dashboard
+  // Unless coming from the "Edit Info" button (with allowUpdate state)
   if (userRole === 'Parent' && location.pathname === '/onboarding') {
     const hasCompleted = localStorage.getItem('hasCompletedOnboarding') === 'true';
     const isUpdating = location.state?.allowUpdate === true;
@@ -165,7 +165,7 @@ export default function App() {
           </ProtectedRoute>
         } />
         <Route path="/admin/payments" element={
-          <ProtectedRoute allowedRoles={['Admin']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Teacher']}>
             <PaymentManagement />
           </ProtectedRoute>
         } />

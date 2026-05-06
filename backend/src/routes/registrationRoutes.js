@@ -10,11 +10,11 @@ router.post('/', regController.createRegistration);
 router.post('/payos-webhook', regController.handlePayOSWebhook);
 
 
-router.get('/selections', verifyToken, scheduleController.getSelections); // [THÊM verifyToken]
-router.post('/selections', verifyToken, scheduleController.saveSelection); // [THÊM verifyToken]
-router.get('/weekly-menu', verifyToken, scheduleController.getWeeklyMenu); // [THÊM verifyToken]
+router.get('/selections', verifyToken, scheduleController.getSelections);
+router.post('/selections', verifyToken, scheduleController.saveSelection);
+router.get('/weekly-menu', verifyToken, scheduleController.getWeeklyMenu);
 
-// TODO: nút test đoạn thanh toán giả lập (chỉ để test nhanh chức năng duyệt phiếu của admin, không dùng trong thực tế)
+// TODO: Mock payment test button (only for quick admin approval testing, not for production)
 router.post('/mock-pay', regController.mockApprovePayment);
 router.delete('/clear-test', regController.clearTestData);
 module.exports = router;
