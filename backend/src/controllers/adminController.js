@@ -194,24 +194,35 @@ exports.getAdminStats = async (req, res) => {
             };
         }
 
-        // 7. Mock chart data
-        const barData = [
-            { day: 'T2', meals: 120 },
-            { day: 'T3', meals: 135 },
-            { day: 'T4', meals: Math.max(mealsToday, 140) },
-            { day: 'T5', meals: 0 },
-            { day: 'T6', meals: 0 }
-        ];
+        // 7. Dữ liệu biểu đồ cột (Xu hướng suất ăn tuần này: T2 -> T6)
+        const barData = [];
+        const dayNames = ['T2', 'T3', 'T4', 'T5', 'T6'];
+        
+        // Tính ngày Thứ 2 của tuần hiện tại
+        const curr = new Date();
+        const first = curr.getDate() - curr.getDay() + 1; // Monday
+        
+        for (let i = 0; i < 5; i++) {
+            const dayDate = new Date(curr.setDate(first + i)).toISOString().split('T')[0];
+            const count = await DailyMealSelection.count({ where: { Date: dayDate } });
+            barData.push({ day: dayNames[i], meals: count });
+            // Reset curr for next calculation
+            curr.setDate(first + i); 
+        }
+
+        // 8. Dữ liệu biểu đồ tròn (Phân bổ suất Mặn / Chay của hôm nay)
+        const standardCount = await DailyMealSelection.count({ where: { Date: today, MealType: 'Standard' } });
+        const vegetarianCount = await DailyMealSelection.count({ where: { Date: today, MealType: 'Vegetarian' } });
 
         const pieData = [
-            { name: 'Suất mặn', value: 280 },
-            { name: 'Suất chay', value: 45 }
+            { name: 'Suất mặn', value: standardCount },
+            { name: 'Suất chay', value: vegetarianCount }
         ];
 
         res.status(200).json({
             data: {
                 studentCount: totalStudents,
-                mealsToday: mealsToday || 120, // Dự phòng 120 nếu database rỗng
+                mealsToday: mealsToday,
                 pendingMenuCount: pendingMenus.length,
                 pendingMenus: pendingMenus.slice(0, 4),
                 unpaidCount: unpaidCount,

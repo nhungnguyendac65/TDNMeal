@@ -122,14 +122,15 @@ export default function IngredientManagement() {
             <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
                 <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <span className="font-bold text-lg text-gray-900 hidden sm:block">Kitchen Management</span>
+                        <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><Utensils size={20} /></div>
+                        <span className="font-bold text-lg text-gray-900 hidden sm:block">Quản lý bếp ăn</span>
                     </div>
                     <div className="hidden lg:flex space-x-6 text-sm font-semibold text-gray-500 h-full">
-                        <Link to="/kitchen/dashboard" className="hover:text-orange-600 h-full flex items-center transition-colors">Overview</Link>
-                        <Link to="/kitchen/create-menu" className="hover:text-orange-600 h-full flex items-center transition-colors">Daily Menu</Link>
-                        <Link to="/kitchen/weekly-menu" className="hover:text-orange-600 h-full flex items-center transition-colors">Weekly Menu</Link>
-                        <Link to="/kitchen/dishes" className="hover:text-orange-600 h-full flex items-center transition-colors">Dishes</Link>
-                        <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default">Ingredients</span>
+                        <Link to="/kitchen/dashboard" className="hover:text-orange-600 h-full flex items-center transition-colors"><LayoutDashboard size={16} className="mr-1.5" /> Tổng quan</Link>
+                        <Link to="/kitchen/create-menu" className="hover:text-orange-600 h-full flex items-center transition-colors"><Plus size={16} className="mr-1.5" /> Tạo thực đơn ngày</Link>
+                        <Link to="/kitchen/weekly-menu" className="hover:text-orange-600 h-full flex items-center transition-colors"><Calendar size={16} className="mr-1.5" /> Thực đơn tuần</Link>
+                        <Link to="/kitchen/dishes" className="hover:text-orange-600 h-full flex items-center transition-colors"><List size={16} className="mr-1.5" /> Món ăn</Link>
+                        <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default"><Package size={16} className="mr-1.5" /> Nguyên liệu</span>
                     </div>
                     <div className="flex items-center space-x-3 text-gray-400">
                         

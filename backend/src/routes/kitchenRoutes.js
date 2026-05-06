@@ -28,6 +28,7 @@ router.get('/dishes', verifyToken, checkRole(['Kitchen']), kitchenController.get
 router.post('/dishes', verifyToken, checkRole(['Kitchen']), upload.single('image'), kitchenController.createDish);
 router.put('/dishes/:id', verifyToken, checkRole(['Kitchen']), upload.single('image'), kitchenController.updateDish);
 router.delete('/dishes/:id', verifyToken, checkRole(['Kitchen']), kitchenController.deleteDish);
+router.get('/meal-counts/:date', verifyToken, checkRole(['Kitchen']), kitchenController.getMealCountsByDate);
 
 // 3. Ingredient Management
 router.get('/ingredients', verifyToken, checkRole(['Kitchen']), ingredientController.getAllIngredients);

@@ -5,7 +5,7 @@ import {
   Utensils, LayoutDashboard, Calendar, List, Package,
   LogOut, Globe, Plus, Search, Filter, Edit, Trash2, AlertTriangle, X, Save, Image as ImageIcon
 , User } from 'lucide-react';
-import api from '../../services/api';
+import api, { getFullUrl } from '../../services/api';
 
 export default function DishManagement() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -207,7 +207,8 @@ export default function DishManagement() {
       <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-20">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-lg text-gray-900 hidden sm:block">Kitchen Management</span>
+            <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><Utensils size={20} /></div>
+            <span className="font-bold text-lg text-gray-900 hidden sm:block">Quản lý bếp ăn</span>
           </div>
 
           <div className="hidden lg:flex space-x-6 text-sm font-semibold text-gray-500 h-full">
@@ -215,7 +216,7 @@ export default function DishManagement() {
               Overview
             </span>
             <span onClick={() => navigate('/kitchen/create-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
-              Daily Menu
+              <Plus size={16} className="mr-1.5" /> {lang === 'vi' ? 'Tạo thực đơn ngày' : 'Create daily menu'}
             </span>
             <span onClick={() => navigate('/kitchen/weekly-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
               Weekly Menu
@@ -330,7 +331,7 @@ export default function DishManagement() {
                     <tr key={dish.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4 flex items-center space-x-3">
                         {dish.ImageUrl ? (
-                          <img src={dish.ImageUrl.startsWith('http') ? dish.ImageUrl : `${dish.ImageUrl}`} alt="dish" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                          <img src={getFullUrl(dish.ImageUrl)} alt="dish" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200"><ImageIcon size={16} className="text-gray-400" /></div>
                         )}

@@ -78,7 +78,7 @@ export default function MealRegistration() {
     } catch (err) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error('[FetchContext Error]', err);
-      setError('Unable to load calculation data. Please try again.'); 
+      setError('Không thể tải dữ liệu tính toán. Vui lòng thử lại.'); 
       setContext(null);
     } finally {
       setLoading(false);
@@ -184,7 +184,7 @@ export default function MealRegistration() {
 
       <main className="px-2 sm:px-4">
         <div className="max-w-[520px] mx-auto bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-slate-200 relative">
-          <h2 className="text-xl font-bold text-center text-gray-900 mb-6 border-b border-gray-100 pb-4">Monthly Registration Form</h2>
+          <h2 className="text-xl font-bold text-center text-gray-900 mb-6 border-b border-gray-100 pb-4">Phiếu đăng ký tháng</h2>
 
           {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
 
@@ -202,9 +202,9 @@ export default function MealRegistration() {
             </select>
           </div>
 
-          {loading ? <div className="text-center py-4 text-gray-500"><Loader2 className="animate-spin mx-auto mb-2" /> Loading...</div> :
+          {loading ? <div className="text-center py-4 text-gray-500"><Loader2 className="animate-spin mx-auto mb-2" /> Đang tải...</div> :
             context?.isLocked ? (
-              <div className="bg-red-50 p-4 rounded border border-red-100 text-center"><p className="text-sm text-red-700">Registration for this month has expired.</p></div>
+              <div className="bg-red-50 p-4 rounded border border-red-100 text-center"><p className="text-sm text-red-700">Đã hết hạn đăng ký của tháng này.</p></div>
             ) : context?.isRegistered ? (
 
               context.registrationStatus !== 'Paid' ? (
@@ -212,33 +212,33 @@ export default function MealRegistration() {
                 context.paymentMethod === 'Cash' ? (
                   <div className="bg-orange-50 p-6 rounded-md border border-orange-200 text-center animate-in fade-in">
                     <UserCheck className="mx-auto text-orange-500 mb-3" size={48} />
-                    <h3 className="text-xl font-bold text-orange-800 mb-2">Awaiting Teacher Confirmation</h3>
-                    <p className="text-sm text-orange-700 mb-4 border-b border-orange-200 pb-4">Form created. Please send cash to the Homeroom Teacher for system confirmation.</p>
-                    <p className="text-xs text-orange-600 font-medium">Note: You cannot select dishes until registration is confirmed.</p>
+                    <h3 className="text-xl font-bold text-orange-800 mb-2">Đợi GVCN xác nhận</h3>
+                    <p className="text-sm text-orange-700 mb-4 border-b border-orange-200 pb-4">Phiếu đã được tạo. Vui lòng gửi tiền mặt cho Giáo viên chủ nhiệm để hệ thống xác nhận.</p>
+                    <p className="text-xs text-orange-600 font-medium">Lưu ý: Bạn chưa thể chọn món trên hệ thống cho đến khi được duyệt.</p>
                   </div>
                 ) : (
                   <div className="text-center py-2 animate-in fade-in duration-300">
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-6 mb-6 shadow-sm text-center">
                       <CreditCard className="mx-auto text-blue-500 mb-3" size={48} />
-                      <h3 className="text-xl font-bold text-blue-900 mb-2">Pending Payment</h3>
-                      <p className="text-sm text-blue-700 mb-6">You have selected Bank Transfer via PayOS (VietQR).</p>
+                      <h3 className="text-xl font-bold text-blue-900 mb-2">Đang chờ thanh toán</h3>
+                      <p className="text-sm text-blue-700 mb-6">Bạn đã chọn hình thức chuyển khoản qua PayOS (VietQR).</p>
 
                       {context.checkoutUrl ? (
                         <>
                           <a href={context.checkoutUrl} target="_blank" rel="noopener noreferrer" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all w-full mb-3">
-                            Open PayOS Payment Page
+                            Mở trang thanh toán PayOS
                           </a>
 
                           <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-3">
                             <div className="flex items-center gap-2 text-slate-500 font-medium">
                               <Timer size={16} className="text-red-500" />
-                              <span className="text-sm">Expires in:</span>
+                              <span className="text-sm">Hết hạn sau:</span>
                             </div>
                             <span className="text-base font-bold text-red-600">{formatTime(timeLeft)}</span>
                           </div>
                         </>
                       ) : (
-                        <p className="text-red-500 text-xs italic">Payment link not found, please try again.</p>
+                        <p className="text-red-500 text-xs italic">Không tìm thấy link thanh toán, vui lòng thử lại.</p>
                       )}
                     </div>
                   </div>
@@ -246,56 +246,62 @@ export default function MealRegistration() {
 
               ) : (
                 <div className="bg-green-50 p-8 rounded-md border border-green-200 text-center animate-in zoom-in">
-                  <h3 className="text-2xl font-bold text-green-800 mb-2">Payment Successful!</h3>
-                  <p className="text-sm text-green-700 mb-8">Payment received. Please select your dishes in the weekly menu.</p>
-                  <button onClick={() => navigate('/parent/schedule')} className="bg-green-600 hover:bg-green-700 text-white w-full py-3 rounded-[10px] font-bold shadow-md transition-all">
-                    Go to Weekly Menu
+                  <h3 className="text-2xl font-bold text-green-800 mb-2">Thanh toán thành công!</h3>
+                  <p className="text-sm text-green-700 mb-8">Hệ thống đã nhận được tiền. Hãy chọn món ở Menu hàng tuần.</p>
+                  <button 
+                    onClick={() => {
+                      const startDate = `${selectedMonth}-01`;
+                      navigate('/parent/schedule', { state: { startDate } });
+                    }} 
+                    className="bg-green-600 hover:bg-green-700 text-white w-full py-3 rounded-[10px] font-bold shadow-md transition-all"
+                  >
+                    Đến trang Xem menu hàng tuần
                   </button>
                 </div>
               )
             ) : (
               <>
                 <div className="bg-yellow-50/50 p-4 rounded-xl mb-6 border border-yellow-100">
-                  <h3 className="text-[12px] font-bold text-slate-500 mb-3 uppercase text-center tracking-widest">Payment Summary</h3>
+                  <h3 className="text-[12px] font-bold text-slate-500 mb-3 uppercase text-center tracking-widest">Tóm tắt thanh toán</h3>
                   <div className="space-y-2.5 text-sm text-slate-600">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Total school days:</span><span className="font-bold text-slate-900">{context?.totalDays} days</span>
+                      <span className="font-medium">Số ngày đi học:</span><span className="font-bold text-slate-900">{context?.totalDays} ngày</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Meal price:</span><span className="font-bold text-slate-900">35,000 VND</span>
+                      <span className="font-medium">Đơn giá bữa ăn:</span><span className="font-bold text-slate-900">35.000 đ</span>
                     </div>
                     <div className="pt-3 mt-1 border-t border-yellow-200 flex justify-between items-center">
-                      <span className="font-bold text-slate-800 text-base">Total:</span>
-                      <span className="font-extrabold text-xl text-green-600">{context?.totalPrice.toLocaleString('vi-VN')} VND</span>
+                      <span className="font-bold text-slate-800 text-base">Tổng cộng:</span>
+                      <span className="font-extrabold text-xl text-green-600">{context?.totalPrice.toLocaleString('vi-VN')} đ</span>
                     </div>
                   </div>
                 </div>
 
                 {!showPayment ? (
                   <button onClick={() => setShowPayment(true)} className="bg-[#bbf7d0] hover:bg-[#86efac] text-green-900 w-full py-3 rounded-[10px] font-medium text-lg shadow-sm transition-colors">
-                    Register
+                    Đăng ký
                   </button>
                 ) : (
                   <div className="mt-6 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
-                    <h3 className="font-bold text-gray-900 mb-4">Choose Payment Method</h3>
+                    <h3 className="font-bold text-gray-900 mb-4">Chọn phương thức thanh toán</h3>
                     <div className="space-y-3 mb-6">
                       <label className={`flex items-center p-4 border rounded cursor-pointer transition-colors ${paymentMethod === 'Transfer' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
                         <input type="radio" name="payment" className="hidden" onChange={() => setPaymentMethod('Transfer')} />
                         <CreditCard className={`mr-4 ${paymentMethod === 'Transfer' ? 'text-green-600' : 'text-gray-400'}`} size={24} />
-                        <span className="font-medium text-gray-800">Bank Transfer (VietQR)</span>
+                        <span className="font-medium text-gray-800">Chuyển khoản ngân hàng (VietQR)</span>
                       </label>
                       <label className={`flex items-center p-4 border rounded cursor-pointer transition-colors ${paymentMethod === 'Cash' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
                         <input type="radio" name="payment" className="hidden" onChange={() => setPaymentMethod('Cash')} />
                         <Banknote className={`mr-4 ${paymentMethod === 'Cash' ? 'text-green-600' : 'text-gray-400'}`} size={24} />
-                        <span className="font-medium text-gray-800">Cash to Teacher</span>
+                        <span className="font-medium text-gray-800">Tiền mặt cho GVCN</span>
                       </label>
                     </div>
                     <div className="flex space-x-3">
                       <button onClick={() => setShowPayment(false)} className="px-5 py-3 rounded-[10px] bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition-colors">
-                        Cancel
+                        Hủy
                       </button>
                       <button onClick={handleFinalSubmit} disabled={!paymentMethod || loading} className="flex-1 bg-green-600 text-white py-3 rounded-[10px] font-medium shadow-sm hover:bg-green-700 transition-colors disabled:bg-gray-300">
-                        Confirm Registration
+                        Xác nhận Đăng ký
                       </button>
                     </div>
                   </div>

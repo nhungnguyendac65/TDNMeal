@@ -32,8 +32,10 @@ const getWeekDates = (currentDate) => {
  */
 const formatDateStr = (dateObj) => {
   const d = new Date(dateObj);
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export default function WeeklyMenu() {
@@ -52,7 +54,7 @@ export default function WeeklyMenu() {
     const diffToNextMonday = day === 0 ? 1 : 8 - day;
     const nextMonday = new Date(now);
     nextMonday.setDate(now.getDate() + diffToNextMonday);
-    return nextMonday.toISOString().split('T')[0];
+    return formatDateStr(nextMonday);
   }, []);
 
   const weekDays = getWeekDates(currentWeekStart);
@@ -136,9 +138,9 @@ export default function WeeklyMenu() {
           <div className="hidden lg:flex space-x-6 text-sm font-semibold text-gray-500 h-full">
             <Link to="/kitchen/dashboard" className="hover:text-orange-600 h-full flex items-center transition-colors">Overview</Link>
             <span onClick={() => navigate('/kitchen/create-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
-              Daily Menu
-            </span>            <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default">Weekly Menu</span>
-            <Link to="/kitchen/dishes" className="hover:text-orange-600 h-full flex items-center transition-colors">Dishes</Link>
+              <Plus size={16} className="mr-1.5" /> {lang === 'vi' ? 'Tạo thực đơn ngày' : 'Create daily menu'}
+            </span>            <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default"><Calendar size={16} className="mr-1.5" /> Thực đơn tuần</span>
+            <Link to="/kitchen/dishes" className="hover:text-orange-600 h-full flex items-center transition-colors"><List size={16} className="mr-1.5" /> Món ăn</Link>
             <span onClick={() => navigate('/kitchen/ingredients')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
               Ingredients
             </span>          </div>
@@ -236,13 +238,13 @@ export default function WeeklyMenu() {
                         </div>
 
                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 mb-4">
-                          <p className="text-xs text-gray-500 font-bold uppercase mb-1">Nutrition (Standard)</p>
+                          <p className="text-xs text-gray-500 font-bold uppercase mb-1">Dinh dưỡng (Chuẩn)</p>
                           <p className="text-lg font-black text-orange-600">{menuData.totalCalories || 0} <span className="text-xs font-bold text-gray-400">kcal</span></p>
                         </div>
 
                         {menuData.status === 'Rejected' && (
                           <div className="mb-4 p-2 bg-red-50 rounded border border-red-100 text-[10px] text-red-600 font-medium">
-                            ⚠ {menuData.rejectReason || 'Needs adjustment'}
+                            ⚠ {menuData.rejectReason || 'Cần sửa đổi'}
                           </div>
                         )}
 
@@ -265,9 +267,9 @@ export default function WeeklyMenu() {
                         ) : (
                           <>
                             <div className="w-12 h-12 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center mb-3 text-orange-400"></div>
-                            <p className="text-xs font-bold text-gray-500 mb-4">No menu yet</p>
+                            <p className="text-xs font-bold text-gray-500 mb-4">Chưa có thực đơn</p>
 
-                            {/* LOCK: PREVENT CREATING MENU FOR CURRENT AND PAST WEEKS */}
+                            {/* KHÓA: KHÔNG CHO TẠO MENU Ở TUẦN HIỆN TẠI VÀ QUÁ KHỨ */}
                             {dateStr < minDate ? (
                               <div className="w-full py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-bold flex justify-center items-center shadow-sm cursor-not-allowed">
                                 Locked

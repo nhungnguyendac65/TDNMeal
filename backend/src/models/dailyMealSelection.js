@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
         Date: { type: DataTypes.DATEONLY, allowNull: false }, // Specific meal date (e.g., 2026-10-12)
         MealType: { 
             type: DataTypes.ENUM('Standard', 'Vegetarian', 'None'), 
-            defaultValue: 'Standard' // Default to Standard if not chosen
+            defaultValue: 'Standard' // Mặc định là suất Mặn nếu không chọn
         }
     }, {
         timestamps: true,

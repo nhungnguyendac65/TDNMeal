@@ -1,8 +1,8 @@
 import ProfileModal from '../../components/ProfileModal';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Clock, Lock, AlertTriangle, Shield, Flame, Info, X, Building, CheckCircle, Search, Utensils, Bell, User, LogOut, ChevronDown } from 'lucide-react';
-import api from '../../services/api';
+import api, { getFullUrl } from '../../services/api';
 
 export default function MealSchedule() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -11,6 +11,14 @@ export default function MealSchedule() {
   const [selectedStudent, setSelectedStudent] = useState('');
   
   const [currentDate, setCurrentDate] = useState(new Date());
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.startDate) {
+      setCurrentDate(new Date(location.state.startDate));
+    }
+  }, [location.state]);
+
   const [weekDays, setWeekDays] = useState([]);
   
   const [monthStatuses, setMonthStatuses] = useState({});
@@ -49,48 +57,20 @@ export default function MealSchedule() {
 
         if (activeStudent && weekDays.length > 0) {
           setIsLoading(true);
-          const targetMonths = [...new Set(weekDays.map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`))];
-          const newStatuses = {};
-          const newSelections = {};
-
-          let isWeekPaid = false;
-
-          for (const mStr of targetMonths) {
-            try {
-              const regRes = await api.get(`/registrations/context?studentId=${activeStudent}&month=${mStr}`);
-              const isPaid = regRes.data.registrationStatus === 'Paid';
-              newStatuses[mStr] = isPaid;
-
-              if (isPaid) {
-                isWeekPaid = true;
-                const selRes = await api.get(`/schedule/selections?studentId=${activeStudent}&month=${mStr}`);
-                if (Array.isArray(selRes.data.data)) {
-                  selRes.data.data.forEach(item => { 
-                    // EXACTLY HERE: Trim the "T00:00..." tail from Database, only take 10 chars YYYY-MM-DD
-                    const cleanDate = item.Date ? String(item.Date).substring(0, 10) : '';
-                    if (cleanDate) {
-                        newSelections[cleanDate] = item.MealType; 
-                    }
-                  });
-                }
-              }
-            } catch (e) {
-              newStatuses[mStr] = false; // Mark as unpaid if fetch fails            }
-          }
           
-          setMonthStatuses(newStatuses);
-          setSelections(newSelections);
+          // [TỐI ƯU SIÊU CẤP]: Gọi 1 API duy nhất lấy toàn bộ context của tuần
+          const startStr = weekDays[0].toISOString().split('T')[0];
+          const response = await api.get(`/schedule/weekly-context?studentId=${activeStudent}&startDate=${startStr}`);
+          
+          const { statuses, selections: dbSelections, menus } = response.data.data;
 
-          if (isWeekPaid) {
-            try {
-              const menuRes = await api.get('/schedule/weekly-menu');
-              setWeeklyMenu(menuRes.data.data || {});
-            } catch (e) {
-              setWeeklyMenu({}); // Clear menu if error            }
-          }
+          setMonthStatuses(statuses);
+          setSelections(dbSelections);
+          setWeeklyMenu(menus);
           setIsLoading(false);
         }
       } catch (err) {
+        console.error("Lỗi tải dữ liệu siêu cấp:", err);
         setIsLoading(false);
       }
     };
@@ -131,6 +111,53 @@ export default function MealSchedule() {
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
+  };
+
+  const CountdownBadge = ({ targetDateString }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+      const calculateTime = () => {
+        const now = new Date();
+        const deadline = new Date(targetDateString);
+        deadline.setDate(deadline.getDate() - 1);
+        deadline.setHours(20, 0, 0, 0);
+
+        const diff = deadline - now;
+        if (diff <= 0) {
+          setTimeLeft('ĐÃ CHỐT');
+          return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        if (hours >= 24) {
+          setTimeLeft(`Còn ${Math.floor(hours/24)} ngày`);
+        } else {
+          setTimeLeft(`Còn ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+        }
+      };
+
+      calculateTime();
+      const timer = setInterval(calculateTime, 1000);
+      return () => clearInterval(timer);
+    }, [targetDateString]);
+
+    if (timeLeft === 'ĐÃ CHỐT') {
+      return (
+        <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200 flex items-center gap-1">
+          <Clock size={10} /> {timeLeft}
+        </span>
+      );
+    }
+
+    return (
+      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-200 shadow-sm flex items-center gap-1 animate-pulse">
+        <Clock size={10} /> {timeLeft}
+      </span>
+    );
   };
 
   const renderDishTypeBadge = (type) => {
@@ -235,7 +262,8 @@ export default function MealSchedule() {
               // [SYNC]: Fetch real menu from database by date (dateString)
               const menuData = weeklyMenu[dateString] || { totalCalories: 0, standardDishes: [], vegetarianDishes: [] };
               
-              const rawActiveDishes = currentChoice === 'Vegetarian' ? menuData.vegetarianDishes : menuData.standardDishes;
+              const rawActiveDishes = currentChoice === 'Vegetarian' ? menuData.vegetarianDishes : 
+                                      currentChoice === 'None' ? [] : menuData.standardDishes;
               const activeDishes = Array.isArray(rawActiveDishes) ? rawActiveDishes : [];
               
               const isHoliday = (date.getDate() === 30 && date.getMonth() === 3) || (date.getDate() === 1 && date.getMonth() === 4);
@@ -267,7 +295,9 @@ export default function MealSchedule() {
                     <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                       <div>
                         <span className={`font-bold text-lg ${!isDayPaid ? 'text-orange-800' : isLocked ? 'text-gray-600' : 'text-green-800'}`}>
-                          {dayNames[dayIndex]} {currentChoice === 'Vegetarian' && <span className="text-yellow-600 text-sm ml-2">(Thực đơn Chay)</span>}
+                          {dayNames[dayIndex]} 
+                          {currentChoice === 'Vegetarian' && <span className="text-yellow-600 text-sm ml-2">(Thực đơn Chay)</span>}
+                          {currentChoice === 'None' && <span className="text-red-600 text-sm ml-2">(Không ăn)</span>}
                         </span>
                         <span className="text-sm text-gray-500 ml-2">{date.toLocaleDateString('vi-VN')}</span>
                       </div>
@@ -277,7 +307,11 @@ export default function MealSchedule() {
                     </div>
 
                     <div className="space-y-3 animate-in fade-in duration-300" key={currentChoice}>
-                      {activeDishes.length > 0 ? (
+                      {currentChoice === 'None' ? (
+                        <div className="text-center py-6 text-gray-500 italic text-sm font-medium border border-dashed border-gray-300 rounded bg-gray-50">
+                          Bạn đã chọn không ăn suất ăn tại trường vào ngày này.
+                        </div>
+                      ) : activeDishes.length > 0 ? (
                         activeDishes.map((dish) => {
                           const hasAllergyWarning = checkAllergyWarning(dish.allergens);
                           
@@ -289,21 +323,31 @@ export default function MealSchedule() {
                                className={`flex items-start justify-between p-3 rounded border cursor-pointer transition-all active:scale-95
                                 ${hasAllergyWarning ? 'bg-pink-50 border-pink-200 hover:border-pink-400 hover:shadow-md' : 'bg-gray-50 border-gray-100 hover:border-green-400 hover:shadow-md'}`}
                             >
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  {renderDishTypeBadge(dish.type)}
-                                  <h4 className={`font-bold text-sm ${hasAllergyWarning ? 'text-pink-900' : 'text-gray-800'}`}>{dish.name}</h4>
-                                </div>
-                                <div className="text-xs text-gray-500 flex items-center">
-                                  <Flame size={12} className="mr-1 text-gray-400" /> {dish.calories} kcal
-                                </div>
-                                {hasAllergyWarning && Array.isArray(dish.allergens) && (
-                                  <p className="text-[11px] text-pink-600 font-medium mt-1.5 flex items-center">
-                                     Có chứa: {dish.allergens.join(', ')}
-                                  </p>
+                              <div className="flex-1 flex space-x-3">
+                                {dish.imageUrl && (
+                                  <img 
+                                    src={getFullUrl(dish.imageUrl) || 'https://placehold.co/100x100/f3f4f6/9ca3af?text=Meal'} 
+                                    alt={dish.name}
+                                    className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shadow-sm flex-shrink-0 bg-white object-cover"
+                                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/f3f4f6/9ca3af?text=Meal'; }}
+                                  />
                                 )}
+                                <div>
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    {renderDishTypeBadge(dish.type)}
+                                    <h4 className={`font-bold text-sm ${hasAllergyWarning ? 'text-pink-900' : 'text-gray-800'}`}>{dish.name}</h4>
+                                  </div>
+                                  <div className="text-xs text-gray-500 flex items-center">
+                                    <Flame size={12} className="mr-1 text-gray-400" /> {dish.calories} kcal
+                                  </div>
+                                  {hasAllergyWarning && Array.isArray(dish.allergens) && (
+                                    <p className="text-[11px] text-pink-600 font-medium mt-1.5 flex items-center">
+                                       Có chứa: {dish.allergens.join(', ')}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex flex-col items-center justify-center bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs font-bold text-blue-600 shadow-sm ml-3 transition-colors hover:bg-blue-50">
+                              <div className="flex flex-col items-center justify-center bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs font-bold text-blue-600 shadow-sm ml-3 transition-colors hover:bg-blue-50 h-full mt-auto mb-auto">
                                 <Search size={16} className="mb-1"/> Xem
                               </div>
                             </div>
@@ -316,13 +360,11 @@ export default function MealSchedule() {
                   </div>
 
                   <div className={`w-full md:w-64 p-5 flex flex-col justify-center ${!isDayPaid ? 'bg-orange-50/30' : 'bg-gray-50/50'} relative`}>
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col mb-4 gap-1.5">
                       <span className="font-bold text-gray-700 text-sm uppercase tracking-wider">Lựa chọn của bạn</span>
-                      {isLocked ? (
-                        <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-1 rounded border"><Clock size={10} className="inline mr-1"/> ĐÃ CHỐT</span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-orange-600 bg-white px-2 py-1 rounded border border-orange-200 shadow-sm"><Clock size={10} className="inline mr-1"/> 20:00 HÔM TRƯỚC</span>
-                      )}
+                      <div className="w-fit">
+                        <CountdownBadge targetDateString={dateString} />
+                      </div>
                     </div>
 
                     {!currentChoice && !isLocked && isDayPaid && (
@@ -355,11 +397,23 @@ export default function MealSchedule() {
                         </div>
                         <span className="font-bold">Suất Chay</span>
                       </button>
+
+                      <button onClick={() => handleSelectMeal(dateString, 'None')} disabled={isLocked || !isDayPaid} 
+                        className={`relative p-3 rounded border-2 text-left transition-all flex items-center
+                          ${currentChoice === 'None' ? 'border-red-500 bg-red-50 text-red-900 shadow-sm' : 'border-gray-200 bg-white hover:border-red-300 text-gray-600'}
+                          ${(isLocked || !isDayPaid) && currentChoice !== 'None' ? 'opacity-40' : ''}
+                        `}
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${currentChoice === 'None' ? 'border-red-600' : 'border-gray-300'}`}>
+                          {currentChoice === 'None' && <div className="w-2 h-2 bg-red-600 rounded-full"></div>}
+                        </div>
+                        <span className="font-bold">Không ăn</span>
+                      </button>
                     </div>
 
                     {saveStatus[dateString] === 'success' && (
                       <div className="mt-4 text-center text-sm font-bold text-green-700 bg-green-100 p-2 rounded-lg border border-green-200 animate-in fade-in slide-in-from-top-2">
-                        Đã lưu suất {currentChoice === 'Standard' ? 'Mặn' : 'Chay'}!
+                        Đã lưu suất {currentChoice === 'Standard' ? 'Mặn' : currentChoice === 'Vegetarian' ? 'Chay' : 'Không ăn'}!
                       </div>
                     )}
                   </div>
@@ -405,7 +459,7 @@ export default function MealSchedule() {
                 </h4>
                 <div className="flex items-center space-x-4 bg-blue-50 p-4 rounded border border-blue-100">
                   <img 
-                    src={selectedDish.supplierLogo || 'https://placehold.co/100x100/3B82F6/FFF?text=NCC'} 
+                    src={getFullUrl(selectedDish.supplierLogo) || 'https://placehold.co/100x100/3B82F6/FFF?text=NCC'} 
                     alt="Logo NCC" 
                     className="w-14 h-14 rounded-full border-2 border-white shadow-md object-cover bg-white" 
                     onError={(e) => { 

@@ -51,7 +51,7 @@ exports.saveSelection = async (req, res) => {
 // ==========================================
 exports.getWeeklyMenu = async (req, res) => {
     try {
-        // 1. Get approved menus in recent period (30 days ago to future)
+        // 1. Lấy thực đơn đã được phê duyệt trong khoảng thời gian gần đây (30 ngày trước đến tương lai)
         const { Op } = require('sequelize');
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -69,7 +69,7 @@ exports.getWeeklyMenu = async (req, res) => {
             return res.status(200).json({ data: {} });
         }
 
-        // 2. Gather all needed DishIDs to query once to avoid multiple library lookups
+        // 2. Gom tất cả DishID cần thiết để truy vấn 1 lần duy nhất, tránh Dish.findAll() toàn bộ thư viện
         const allDishIds = new Set();
         approvedMenus.forEach(menu => {
             (menu.StandardDishList || '').split(',').filter(Boolean).forEach(id => allDishIds.add(parseInt(id)));
@@ -85,7 +85,7 @@ exports.getWeeklyMenu = async (req, res) => {
             dishMap[d.DishID] = d;
         });
 
-        // 3. Mapping data according to Frontend expectations
+        // 3. Mapping dữ liệu theo cấu trúc Frontend mong đợi
         const result = {};
 
         approvedMenus.forEach(menu => {
@@ -99,12 +99,12 @@ exports.getWeeklyMenu = async (req, res) => {
                 if (!dish) return null;
                 return {
                     id: dish.DishID,
-                    name: dish.DishName, // Updated from .Name -> .DishName
+                    name: dish.DishName, // Sửa từ .Name -> .DishName
                     type: dish.Type,
                     calories: dish.Calories,
                     allergens: (dish.Allergies || '').split(',').map(a => a.trim()).filter(Boolean),
-                    ingredients: dish.MainIngredients || '',
-                    supplier: dish.SupplierName || 'Tran Dai Nghia Kitchen',
+                    ingredients: dish.MainIngredients || '', // Sửa từ .Ingredients -> .MainIngredients
+                    supplier: dish.SupplierName || 'Nhà bếp Trần Đại Nghĩa', // Sửa từ .Supplier -> .SupplierName
                     imageUrl: dish.ImageUrl || ''
                 };
             };
@@ -219,5 +219,102 @@ exports.getParentWeeklyContext = async (req, res) => {
     } catch (error) {
         console.error("Super API Error:", error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ==========================================
+// [SUPER API] LẤY TẤT CẢ DỮ LIỆU TUẦN TRONG 1 REQUEST
+// Giúp tăng tốc độ tải trên môi trường Ngrok/Mạng yếu
+// ==========================================
+exports.getParentWeeklyContext = async (req, res) => {
+    try {
+        const { studentId, startDate } = req.query; // startDate: YYYY-MM-DD (Thứ 2 của tuần)
+        if (!studentId || !startDate) return res.status(400).json({ message: 'Thiếu thông tin' });
+
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 4); // Lấy đến Thứ 6
+
+        const startStr = start.toISOString().split('T')[0];
+        const endStr = end.toISOString().split('T')[0];
+
+        // 1. Lấy thông tin các tháng liên quan (thường là 1 hoặc 2 tháng trong 1 tuần)
+        const targetMonths = [...new Set([
+            startStr.substring(0, 7),
+            endStr.substring(0, 7)
+        ])];
+
+        const { Op } = require('sequelize');
+
+        // 2. Chạy các query cần thiết song song
+        const [registrations, selections, approvedMenus] = await Promise.all([
+            MealRegistration.findAll({ where: { StudentID: studentId, Month: targetMonths } }),
+            DailyMealSelection.findAll({ where: { StudentID: studentId, Date: { [Op.between]: [startStr, endStr] } } }),
+            DailyMenu.findAll({ where: { Status: 'Approved', MenuDate: { [Op.between]: [startStr, endStr] } } })
+        ]);
+
+        // 3. Lấy thông tin món ăn từ thực đơn
+        const allDishIds = new Set();
+        approvedMenus.forEach(m => {
+            (m.StandardDishList || '').split(',').filter(Boolean).forEach(id => allDishIds.add(parseInt(id)));
+            (m.VegetarianDishList || '').split(',').filter(Boolean).forEach(id => allDishIds.add(parseInt(id)));
+        });
+
+        const dishes = await Dish.findAll({
+            where: { DishID: Array.from(allDishIds) },
+            attributes: ['DishID', 'DishName', 'Type', 'Calories', 'Allergies', 'MainIngredients', 'SupplierName', 'ImageUrl']
+        });
+
+        const dishMap = {};
+        dishes.forEach(d => { dishMap[d.DishID] = d; });
+
+        // 4. Format dữ liệu trả về
+        const formattedMenus = {};
+        approvedMenus.forEach(menu => {
+            const dateStr = menu.MenuDate;
+            const mapDish = (id) => {
+                const dish = dishMap[id];
+                if (!dish) return null;
+                return {
+                    id: dish.DishID,
+                    name: dish.DishName,
+                    type: dish.Type,
+                    calories: dish.Calories,
+                    allergens: (dish.Allergies || '').split(',').map(a => a.trim()).filter(Boolean),
+                    ingredients: dish.MainIngredients,
+                    supplier: dish.SupplierName,
+                    imageUrl: dish.ImageUrl
+                };
+            };
+
+            formattedMenus[dateStr] = {
+                totalCalories: menu.TotalCalories,
+                vegCalories: menu.VegCalories,
+                status: menu.Status,
+                standardDishes: (menu.StandardDishList || '').split(',').filter(Boolean).map(mapDish).filter(Boolean),
+                vegetarianDishes: (menu.VegetarianDishList || '').split(',').filter(Boolean).map(mapDish).filter(Boolean)
+            };
+        });
+
+        const formattedStatuses = {};
+        registrations.forEach(r => { formattedStatuses[r.Month] = r.Status === 'Paid'; });
+
+        const formattedSelections = {};
+        selections.forEach(s => { 
+            const dStr = String(s.Date).substring(0, 10);
+            formattedSelections[dStr] = s.MealType; 
+        });
+
+        return res.status(200).json({
+            data: {
+                statuses: formattedStatuses,
+                selections: formattedSelections,
+                menus: formattedMenus
+            }
+        });
+
+    } catch (error) {
+        console.error("Lỗi Super API:", error);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };

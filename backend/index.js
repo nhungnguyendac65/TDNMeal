@@ -15,13 +15,17 @@ const kitchenRoutes = require('./src/routes/kitchenRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const registrationRoutes = require('./src/routes/registrationRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
+const compression = require('compression');
 const path = require('path');
 const app = express();
 
 // =====================================
 // 2. MIDDLEWARE & ROUTES SETUP
 // =====================================
-// 1. Enable CORS for Frontend access
+// 0. Bật nén Gzip để tăng tốc độ tải qua Ngrok/Mạng chậm
+app.use(compression());
+
+// 1. Mở cửa CORS cho Frontend truy cập
 app.use(cors());
 
 // 2. Parse JSON bodyapp.use(express.json());

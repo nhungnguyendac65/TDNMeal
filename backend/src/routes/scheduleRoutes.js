@@ -7,10 +7,10 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 router.get('/context', verifyToken, regController.getRegistrationContext); 
 router.post('/', verifyToken, regController.createRegistration); 
 
-router.get('/selections', verifyToken, scheduleController.getSelections); 
-router.post('/selections', verifyToken, scheduleController.saveSelection); 
-router.get('/weekly-menu', verifyToken, scheduleController.getWeeklyMenu); 
-router.get('/weekly-context', verifyToken, scheduleController.getParentWeeklyContext); 
+router.get('/selections', verifyToken, scheduleController.getSelections); // [THÊM verifyToken]
+router.post('/selections', verifyToken, scheduleController.saveSelection); // [THÊM verifyToken]
+router.get('/weekly-menu', verifyToken, scheduleController.getWeeklyMenu); // [THÊM verifyToken]
+router.get('/weekly-context', verifyToken, scheduleController.getParentWeeklyContext); // [SUPER API]
 router.post('/mock-pay', regController.mockApprovePayment);
 router.delete('/clear-test', regController.clearTestData);
 module.exports = router;

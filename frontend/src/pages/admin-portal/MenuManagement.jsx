@@ -5,7 +5,7 @@ import {
   Shield, LayoutDashboard, Users, GraduationCap, Utensils, CreditCard,
   LogOut, Search, CheckCircle, AlertTriangle, X, Check, XCircle, Calendar as CalendarIcon, ChevronRight, Image as ImageIcon
  , User } from 'lucide-react';
-import api from '../../services/api';
+import api, { getFullUrl } from '../../services/api';
 
 const getWeekOfMonth = (dateString) => {
   const date = new Date(dateString);
@@ -325,7 +325,7 @@ export default function MenuManagement() {
                       <div key={idx} className="flex gap-4 items-center p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                         <div className="w-16 h-16 rounded-lg bg-slate-200 shrink-0 overflow-hidden border border-slate-200 flex items-center justify-center">
                           {dish.ImageUrl ? (
-                            <img src={dish.ImageUrl.startsWith('http') ? dish.ImageUrl : `${dish.ImageUrl}`} alt={dish.DishName} className="w-full h-full object-cover" />
+                            <img src={getFullUrl(dish.ImageUrl)} alt={dish.DishName} className="w-full h-full object-cover" />
                           ) : (
                             <ImageIcon className="text-slate-400" size={24} />
                           )}
@@ -354,7 +354,7 @@ export default function MenuManagement() {
                       <div key={idx} className="flex gap-4 items-center p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                         <div className="w-16 h-16 rounded-lg bg-slate-200 shrink-0 overflow-hidden border border-slate-200 flex items-center justify-center">
                           {dish.ImageUrl ? (
-                            <img src={dish.ImageUrl.startsWith('http') ? dish.ImageUrl : `${dish.ImageUrl}`} alt={dish.DishName} className="w-full h-full object-cover" />
+                            <img src={getFullUrl(dish.ImageUrl)} alt={dish.DishName} className="w-full h-full object-cover" />
                           ) : (
                             <ImageIcon className="text-slate-400" size={24} />
                           )}

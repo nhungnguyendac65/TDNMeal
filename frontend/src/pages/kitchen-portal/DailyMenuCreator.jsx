@@ -4,9 +4,17 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Calendar, CheckCircle, Save, Send, AlertTriangle,
   Search, Info, Utensils, Loader2, LayoutDashboard,
-  List, LogOut, Globe, Plus, Package, Users, Lock, ChevronLeft, X
+  List, LogOut, Globe, Plus, Package, Users, Lock, ChevronLeft, X, Clock
 , User } from 'lucide-react';
-import api from '../../services/api';
+import api, { getFullUrl } from '../../services/api';
+
+const formatDateStr = (dateObj) => {
+  const d = new Date(dateObj);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function DailyMenuCreator() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -15,7 +23,6 @@ export default function DailyMenuCreator() {
   const location = useLocation();
   const [lang, setLang] = useState('vi');
 
-  // --- REAL DATA STATES ---
   const [dishes, setDishes] = useState([]);
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
 
@@ -26,6 +33,7 @@ export default function DailyMenuCreator() {
   const [isChecking, setIsChecking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [allergyWarnings, setAllergyWarnings] = useState([]);
+  const [mealCounts, setMealCounts] = useState({ Standard: 0, Vegetarian: 0, None: 0 });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const showToast = (message, type = 'success') => {
@@ -33,23 +41,20 @@ export default function DailyMenuCreator() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Calculate Next Monday (Restricted to future menus)
   const minDate = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
     const diffToNextMonday = day === 0 ? 1 : 8 - day;
     const nextMonday = new Date(now);
     nextMonday.setDate(now.getDate() + diffToNextMonday);
-    return nextMonday.toISOString().split('T')[0];
+    return formatDateStr(nextMonday);
   }, []);
 
-  // 8 MENU SLOTS (4 STANDARD - 4 VEGETARIAN)
   const [menuSlots, setMenuSlots] = useState({
-    std_main: null, std_veg: null, std_soup: null, std_side: null, // Suất Mặn
-    veg_main: null, veg_veg: null, veg_soup: null, veg_side: null  // Suất Chay
+    std_main: null, std_veg: null, std_soup: null, std_side: null, 
+    veg_main: null, veg_veg: null, veg_soup: null, veg_side: null  
   });
 
-  // 1. LOAD DISH LIBRARY ON MOUNT
   useEffect(() => {
     const fetchDishes = async () => {
       try {
@@ -63,24 +68,25 @@ export default function DailyMenuCreator() {
     };
     fetchDishes();
 
-    // Check for date parameter in URL (from WeeklyMenu)
     const queryParams = new URLSearchParams(location.search);
     const dateParam = queryParams.get('date');
 
     if (dateParam) {
       setMenuDate(dateParam);
     } else {
-      // Default to next Monday
+
       setMenuDate(minDate);
     }
   }, [minDate, location.search]);
 
-  // 2. CHECK MENU STATUS ON DATE CHANGE
+  /**
+ * Checks the status of the menu when the selected date changes.
+ */
   useEffect(() => {
     const fetchMenuStatus = async () => {
       if (!menuDate || dishes.length === 0) return;
       try {
-        const res = await api.get(`/kitchen/menus/date/${menuDate}`);
+        const res = await api.get(`/menus/date/${menuDate}`);
         if (res.data && res.data.data) {
           const fetchedMenu = res.data.data;
           setStatus(fetchedMenu.Status);
@@ -88,7 +94,6 @@ export default function DailyMenuCreator() {
             setRejectReason(fetchedMenu.RejectReason || 'Thực đơn cần điều chỉnh lại định lượng dinh dưỡng.');
           }
 
-          // [SYNC] Load dish details from ID string
           const stdIds = (fetchedMenu.StandardDishList || '').split(',').filter(Boolean);
           const vegIds = (fetchedMenu.VegetarianDishList || '').split(',').filter(Boolean);
 
@@ -105,7 +110,7 @@ export default function DailyMenuCreator() {
             veg_side: findDish(vegIds[3]) || null
           });
         } else {
-          // New date, no menu yet
+
           setStatus('Draft');
           setRejectReason('');
           setMenuSlots({
@@ -118,9 +123,34 @@ export default function DailyMenuCreator() {
       }
     };
     fetchMenuStatus();
-  }, [menuDate, dishes]);
 
-  // --- CALORIES & VALIDATION CALCULATIONS ---
+    // Kiểm tra nếu là cuối tuần thì cảnh báo và chuyển về minDate
+    const selectedDate = new Date(menuDate);
+    const day = selectedDate.getDay();
+    if (day === 0 || day === 6) {
+      alert("Hệ thống không hỗ trợ lên thực đơn cho Thứ 7 và Chủ Nhật.");
+      setMenuDate(minDate);
+      return;
+    }
+
+    const fetchMealCounts = async () => {
+      const isViewMode = new URLSearchParams(location.search).has('view');
+      if (isViewMode && menuDate) {
+        try {
+          const res = await api.get(`/kitchen/meal-counts/${menuDate}`);
+          if (res.data && res.data.data) {
+            setMealCounts(res.data.data);
+          }
+        } catch (error) {
+          console.error("Lỗi tải số lượng suất ăn:", error);
+        }
+      } else {
+        setMealCounts({ Standard: 0, Vegetarian: 0, None: 0 });
+      }
+    };
+    fetchMealCounts();
+  }, [menuDate, dishes, location.search]);
+
   const { stdCalories, vegCalories, validation } = useMemo(() => {
     let stdCals = 0;
     let vegCals = 0;
@@ -159,7 +189,6 @@ export default function DailyMenuCreator() {
   const isReadOnly = status === 'Submitted' || status === 'Approved' || isCurrentOrPastWeek;
   const canSubmit = validation.isComplete && validation.hasSuppliers && !isReadOnly;
 
-  // --- EVENT HANDLERS ---
   const handleLogout = () => { localStorage.clear(); navigate('/login'); };
 
   const handleDishSelect = (slotKey, dishId) => {
@@ -183,7 +212,7 @@ export default function DailyMenuCreator() {
       const standardDishIds = [menuSlots.std_main?.id, menuSlots.std_veg?.id, menuSlots.std_soup?.id, menuSlots.std_side?.id].filter(Boolean);
       const vegetarianDishIds = [menuSlots.veg_main?.id, menuSlots.veg_veg?.id, menuSlots.veg_soup?.id, menuSlots.veg_side?.id].filter(Boolean);
 
-      const res = await api.post('/kitchen/menus/allergy-check', {
+      const res = await api.post('/menus/allergy-check', {
         date: menuDate, standardDishIds, vegetarianDishIds
       });
       setAllergyWarnings(res.data.warnings || []);
@@ -200,7 +229,7 @@ export default function DailyMenuCreator() {
       const standardDishIds = [menuSlots.std_main?.id, menuSlots.std_veg?.id, menuSlots.std_soup?.id, menuSlots.std_side?.id].filter(Boolean);
       const vegetarianDishIds = [menuSlots.veg_main?.id, menuSlots.veg_veg?.id, menuSlots.veg_soup?.id, menuSlots.veg_side?.id].filter(Boolean);
 
-      await api.post('/kitchen/menus', { MenuDate: menuDate, standardDishIds, vegetarianDishIds });
+      await api.post('/menus', { MenuDate: menuDate, standardDishIds, vegetarianDishIds });
       setStatus('Submitted');
       showToast("Đã gửi thực đơn chờ duyệt!");
     } catch (error) {
@@ -208,12 +237,10 @@ export default function DailyMenuCreator() {
     } finally { setIsSaving(false); }
   };
 
-  // --- SUB-COMPONENT: DISH SELECTION BLOCK ---
   const DishBlock = ({ title, slotKey, filterType, colorObj }) => {
     const currentDish = menuSlots[slotKey];
     const availableDishes = Array.isArray(filterType) ? dishes.filter(d => filterType.includes(d.type)) : dishes.filter(d => d.type === filterType);
 
-    // READ-ONLY INTERFACE (Info Cards)
     if (isReadOnly) {
       return (
         <div className="flex flex-col bg-gray-50 rounded border border-gray-200 p-4 shadow-sm h-full opacity-90">
@@ -228,8 +255,8 @@ export default function DailyMenuCreator() {
               <>
                 <p className="font-black text-gray-900 text-base">{currentDish.name}</p>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs font-bold bg-orange-50 text-orange-700 px-2 py-1 rounded">🔥 {currentDish.calories} kcal</span>
-                  <span className="text-xs font-medium text-gray-500 truncate">📦 {currentDish.supplier}</span>
+                  <span className="text-xs font-bold bg-orange-50 text-orange-700 px-2 py-1 rounded">{currentDish.calories} kcal</span>
+                  <span className="text-xs font-medium text-gray-500 truncate">NCC: {currentDish.supplier}</span>
                 </div>
               </>
             ) : (
@@ -240,7 +267,6 @@ export default function DailyMenuCreator() {
       );
     }
 
-    // DRAFT INTERFACE (Editable)
     return (
       <div className={`flex flex-col bg-white rounded border-2 p-4 shadow-sm h-full transition-all ${!currentDish ? 'border-dashed border-gray-300 bg-gray-50/30' :
         (!currentDish.supplier || !currentDish.calories) ? 'border-yellow-300' : 'border-white'
@@ -249,7 +275,7 @@ export default function DailyMenuCreator() {
           <h3 className={`text-sm font-bold flex items-center gap-2 ${colorObj.text}`}>
             <Utensils size={14} className={colorObj.icon} /> {title}
           </h3>
-          
+
         </div>
         <select
           value={currentDish?.id || ''}
@@ -281,7 +307,7 @@ export default function DailyMenuCreator() {
           </div>
           <div className="hidden lg:flex space-x-6 text-sm font-semibold text-gray-500 h-full">
             <Link to="/kitchen/dashboard" className="hover:text-orange-600 h-full flex items-center transition-colors"><LayoutDashboard size={16} className="mr-1.5" /> Tổng quan</Link>
-            <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default">Tạo thực đơn ngày</span>
+            <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-default"><Plus size={16} className="mr-1.5" /> Tạo thực đơn ngày</span>
             <span onClick={() => navigate('/kitchen/weekly-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
               <Calendar size={16} className="mr-1.5" /> {lang === 'vi' ? 'Thực đơn tuần' : 'Weekly menu'}
             </span>            <Link to="/kitchen/dishes" className="hover:text-orange-600 h-full flex items-center transition-colors"><List size={16} className="mr-1.5" /> Món ăn</Link>
@@ -289,7 +315,7 @@ export default function DailyMenuCreator() {
               <Package size={16} className="mr-1.5" /> {lang === 'vi' ? 'Nguyên liệu' : 'Ingredients'}
             </span>          </div>
           <div className="flex items-center space-x-3 text-gray-400">
-            
+
             <button onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')} className="flex items-center space-x-1.5 bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm">
               <span>{lang === 'vi' ? 'VN' : 'EN'}</span>
             </button>
@@ -300,7 +326,7 @@ export default function DailyMenuCreator() {
                   <User size={16} />
                 </span>
               </div>
-              
+
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
                 <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-md">
                   <p className="text-[13px] font-bold text-slate-800">Tài khoản</p>
@@ -373,10 +399,41 @@ export default function DailyMenuCreator() {
         </div>
       </div>
 
+      {/* 2.5 HIỂN THỊ SỐ LƯỢNG SUẤT ĂN (Chỉ hiện khi bấm xem từ menu tuần - CÓ THỰC ĐƠN) */}
+      {new URLSearchParams(location.search).has('view') && (
+        <div className="max-w-[1400px] mx-auto px-6 mt-4">
+          <div className="bg-white border border-indigo-100 rounded-lg p-4 shadow-sm flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-700">Tổng đăng ký:</span>
+              <span className="text-indigo-700 font-black text-lg">{mealCounts.Standard + mealCounts.Vegetarian}</span>
+            </div>
+            <div className="w-px h-6 bg-gray-200 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-orange-500"></span>
+              <span className="text-sm font-bold text-gray-600">Suất Mặn:</span>
+              <span className="font-black text-orange-600">{mealCounts.Standard}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-green-500"></span>
+              <span className="text-sm font-bold text-gray-600">Suất Chay:</span>
+              <span className="font-black text-green-600">{mealCounts.Vegetarian}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-gray-400"></span>
+              <span className="text-sm font-bold text-gray-600">Không ăn:</span>
+              <span className="font-black text-gray-500">{mealCounts.None}</span>
+            </div>
+            <div className="ml-auto bg-indigo-50 px-3 py-1 rounded text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+              Dữ liệu thời gian thực
+            </div>
+          </div>
+        </div>
+      )}
+
       {status === 'Rejected' && (
         <div className="max-w-[1400px] mx-auto px-6 mt-4">
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl flex items-start gap-3 shadow-sm">
-            
+
             <div><h3 className="font-bold text-red-800">Bị từ chối:</h3><p className="text-red-700 text-sm">{rejectReason}</p></div>
           </div>
         </div>

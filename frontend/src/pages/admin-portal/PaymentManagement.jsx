@@ -12,8 +12,8 @@ export default function PaymentManagement() {
 
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem('user')) || { role: 'Guest', fullName: 'Admin' };
-  const userRole = currentUser.role;
+  const currentUser = JSON.parse(localStorage.getItem('user')) || { Role: 'Guest', role: 'Guest', fullName: 'Admin' };
+  const userRole = currentUser.Role || currentUser.role;
 
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -168,7 +168,7 @@ export default function PaymentManagement() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-20">
-          <h2 className="font-semibold text-slate-400 text-xs uppercase tracking-wider">{currentUser.fullName} - {userRole === 'Teacher' ? 'Giáo viên' : 'Admin'}</h2>
+          <h2 className="font-semibold text-slate-400 text-xs uppercase tracking-wider">{currentUser.fullName}</h2>
           
             <div className="relative group cursor-pointer pb-2 -mb-2 z-[100] ml-2">
               <div className="flex items-center gap-2 font-semibold text-sm">
@@ -358,9 +358,8 @@ export default function PaymentManagement() {
                               </button>
                             ) : null
                           ) : (
-                            // If Teacher and parent chose Transfer or expired
-                            <span className="text-[10px] text-slate-400 italic">
-                              {userRole === 'Teacher' && isExpired ? 'Đã hết hạn' : 'Chờ kế toán'}
+                            <span className={`text-[10px] italic font-bold ${payment.status === 'Paid' ? 'text-green-600' : 'text-slate-400'}`}>
+                              {payment.status === 'Paid' ? 'Đã thanh toán' : (userRole === 'Teacher' && isExpired ? 'Đã hết hạn' : 'Chờ kế toán')}
                             </span>
                           )}
                         </td>

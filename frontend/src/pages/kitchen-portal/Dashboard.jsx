@@ -144,14 +144,15 @@ export default function KitchenDashboard() {
       <nav className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-20">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-lg text-gray-900 hidden sm:block">Kitchen Management</span>
+            <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><Utensils size={20} /></div>
+            <span className="font-bold text-lg text-gray-900 hidden sm:block">Quản lý bếp ăn</span>
           </div>
           <div className="hidden lg:flex space-x-6 text-sm font-semibold text-gray-500 h-full">
             <span className="text-orange-600 border-b-2 border-orange-500 h-full flex items-center cursor-pointer transition-colors">
               Overview
             </span>
             <span onClick={() => navigate('/kitchen/create-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
-              Daily Menu
+              <Plus size={16} className="mr-1.5" /> {lang === 'vi' ? 'Tạo thực đơn ngày' : 'Create daily menu'}
             </span>
             <span onClick={() => navigate('/kitchen/weekly-menu')} className="hover:text-orange-600 h-full flex items-center cursor-pointer transition-colors">
               Weekly Menu
