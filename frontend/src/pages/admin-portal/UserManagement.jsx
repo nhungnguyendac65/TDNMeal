@@ -15,14 +15,14 @@ export default function UserManagement() {
   const [lang, setLang] = useState('vi');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
-  // Lấy thông tin user hiện tại để phân quyền Sidebar
+  // Get current user info for Sidebar permissions
   const currentUser = JSON.parse(localStorage.getItem('user')) || { role: 'Guest' };
   const userRole = currentUser.role;
 
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('Tất cả'); // Đã có state lọc Role
+  const [filterRole, setFilterRole] = useState('All'); // Role filtering state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
@@ -43,7 +43,7 @@ export default function UserManagement() {
       const res = await api.get('/admin/users');
       setUsers(res.data?.data || []);
     } catch (error) {
-      showToast("Lỗi khi tải dữ liệu", "error");
+      showToast("Error loading data", "error");
     } finally { setIsLoading(false); }
   };
 
@@ -54,44 +54,43 @@ export default function UserManagement() {
     try {
       if (editingId) {
         await api.put(`/admin/users/${editingId}`, formData);
-        showToast("Cập nhật thành công!", "success");
+        showToast("Updated successfully!", "success");
       } else {
         await api.post('/admin/users', formData);
-        showToast("Đã tạo tài khoản mới!", "success");
+        showToast("New account created!", "success");
       }
       setIsModalOpen(false);
       fetchUsers();
     } catch (error) {
-      showToast(error.response?.data?.message || "Lỗi thao tác", "error");
+      showToast(error.response?.data?.message || "Operation error", "error");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Xóa tài khoản này?")) return;
+    if (!window.confirm("Delete this account?")) return;
     try {
       await api.delete(`/admin/users/${id}`);
-      showToast("Đã xóa!", "success");
+      showToast("Deleted!", "success");
       fetchUsers();
-    } catch (error) { showToast("Lỗi xóa", "error"); }
+    } catch (error) { showToast("Delete error", "error"); }
   };
 
-  // Logic lọc dữ liệu (kết hợp Tìm kiếm chữ + Lọc dropdown)
+  // Data filtering logic (Search + Role dropdown)
   const filteredUsers = users.filter(item => 
     (item.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || item.username?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (filterRole === 'Tất cả' || item.role === filterRole)
+    (filterRole === 'All' || item.role === filterRole)
   );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex  text-slate-700">
       
-      {/* SIDEBAR BẢN CHUẨN ĐỒNG BỘ 100% VỚI CÁC TRANG KHÁC */}
+      {/* SIDEBAR - SYNCHRONIZED WITH OTHER PAGES */}
       <aside 
         onMouseEnter={() => setIsSidebarExpanded(true)} 
         onMouseLeave={() => setIsSidebarExpanded(false)}
         className={`bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen transition-all duration-300 z-50 ${isSidebarExpanded ? 'w-64 shadow-sm' : 'w-20'}`}
       >
         <div className="p-6 border-b border-slate-100 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white shrink-0 shadow-sm"><Shield size={20}/></div>
           <span className={`font-bold text-lg tracking-tight text-slate-900 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>ADMIN PORTAL</span>
         </div>
         
@@ -99,14 +98,14 @@ export default function UserManagement() {
           <NavItem icon={LayoutDashboard} label="Dashboard" expanded={isSidebarExpanded} onClick={() => navigate('/admin/dashboard')} />
           
           {userRole === 'Admin' && (
-            <NavItem icon={Users} label="Người dùng" active expanded={isSidebarExpanded} />
+            <NavItem icon={Users} label="Users" active expanded={isSidebarExpanded} />
           )}
           
-          <NavItem icon={GraduationCap} label="Học sinh" expanded={isSidebarExpanded} onClick={() => navigate('/admin/students')} />
-          <NavItem icon={Utensils} label="Thực đơn" expanded={isSidebarExpanded} onClick={() => navigate('/admin/menus')} />
+          <NavItem icon={GraduationCap} label="Students" expanded={isSidebarExpanded} onClick={() => navigate('/admin/students')} />
+          <NavItem icon={Utensils} label="Menus" expanded={isSidebarExpanded} onClick={() => navigate('/admin/menus')} />
           
           {userRole === 'Admin' && (
-            <NavItem icon={CreditCard} label="Thanh toán" expanded={isSidebarExpanded} onClick={() => navigate('/admin/payments')} />
+            <NavItem icon={CreditCard} label="Payments" expanded={isSidebarExpanded} onClick={() => navigate('/admin/payments')} />
           )}
         </nav>
       </aside>
@@ -129,11 +128,11 @@ export default function UserManagement() {
               
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
                 <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-md">
-                  <p className="text-[13px] font-bold text-slate-800">Tài khoản</p>
+                  <p className="text-[13px] font-bold text-slate-800">Account</p>
                 </div>
                 <div className="p-1.5">
-                  <button onClick={() => setIsProfileModalOpen(true)} className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded transition-colors font-semibold">Thay đổi mật khẩu</button>
-                  <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors font-bold mt-1">Đăng xuất</button>
+                  <button onClick={() => setIsProfileModalOpen(true)} className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded transition-colors font-semibold">Change password</button>
+                  <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors font-bold mt-1">Logout</button>
                 </div>
               </div>
             </div>
@@ -144,24 +143,24 @@ export default function UserManagement() {
         <main className="p-8 space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý người dùng</h1>
-              <p className="text-slate-500 text-sm mt-1">Phân quyền và quản lý tài khoản truy cập hệ thống.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">User Management</h1>
+              <p className="text-slate-500 text-sm mt-1">Role assignments and system access management.</p>
             </div>
             
             <div className="flex items-center gap-3">
-              {/* THANH TÌM KIẾM */}
+              {/* SEARCH BAR */}
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input 
                   type="text" 
-                  placeholder="Tìm kiếm..." 
+                  placeholder="Search..." 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)} 
                   className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500 w-64 shadow-sm" 
                 />
               </div>
 
-              {/* [ĐÃ BỔ SUNG]: BỘ LỌC THEO VAI TRÒ (ROLE) */}
+              {/* ROLE FILTER */}
               <div className="relative hidden sm:block">
                 <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
                   <Filter size={16} />
@@ -171,15 +170,15 @@ export default function UserManagement() {
                   onChange={e => setFilterRole(e.target.value)}
                   className="pl-9 pr-8 py-2 bg-white border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm font-semibold text-slate-600 appearance-none cursor-pointer"
                 >
-                  <option value="Tất cả">Tất cả vai trò</option>
+                  <option value="All">All roles</option>
                   <option value="Admin">Admin</option>
-                  <option value="Teacher">Giáo viên</option>
-                  <option value="Kitchen">Nhà bếp</option>
-                  <option value="Parent">Phụ huynh</option>
+                  <option value="Teacher">Teacher</option>
+                  <option value="Kitchen">Kitchen</option>
+                  <option value="Parent">Parent</option>
                 </select>
               </div>
 
-              {/* NÚT THÊM MỚI */}
+              {/* ADD NEW BUTTON */}
               <button 
                 onClick={() => {
                   setEditingId(null); 
@@ -188,7 +187,7 @@ export default function UserManagement() {
                 }} 
                 className="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2 transition-all"
               >
-                Thêm mới
+                Add New
               </button>
             </div>
           </div>
@@ -198,18 +197,18 @@ export default function UserManagement() {
               <table className="w-full text-left border-collapse text-sm">
                 <thead className="bg-slate-50 border-b border-slate-100 font-bold text-slate-400 uppercase text-[10px] tracking-wider">
                   <tr>
-                    <th className="p-4">Họ Tên</th>
-                    <th className="p-4">Tài khoản</th>
-                    <th className="p-4">Vai trò</th>
-                    <th className="p-4 text-center">Trạng thái</th>
-                    <th className="p-4 text-right">Thao tác</th>
+                    <th className="p-4">Full Name</th>
+                    <th className="p-4">Account</th>
+                    <th className="p-4">Role</th>
+                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {isLoading ? (
-                    <tr><td colSpan="5" className="p-8 text-center text-slate-400 italic">Đang tải dữ liệu...</td></tr>
+                    <tr><td colSpan="5" className="p-8 text-center text-slate-400 italic">Loading data...</td></tr>
                   ) : filteredUsers.length === 0 ? (
-                    <tr><td colSpan="5" className="p-8 text-center text-slate-400 font-medium">Không tìm thấy tài khoản nào.</td></tr>
+                    <tr><td colSpan="5" className="p-8 text-center text-slate-400 font-medium">No accounts found.</td></tr>
                   ) : filteredUsers.map(user => (
                     <tr key={user.id} className="hover:bg-slate-50/50 group transition-colors">
                       <td className="p-4 font-semibold text-slate-900">{user.fullName}</td>
@@ -217,12 +216,12 @@ export default function UserManagement() {
                       <td className="p-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-600 text-[11px] font-bold border border-indigo-100">
                           <Shield size={12}/>
-                          {user.role} {user.role === 'Teacher' && user.classRoom ? ` - Lớp ${user.classRoom}` : ''}
+                          {user.role} {user.role === 'Teacher' && user.classRoom ? ` - Class ${user.classRoom}` : ''}
                         </span>
                       </td>
                       <td className="p-4 text-center">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${user.status==='Active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                          {user.status === 'Active' ? 'Hoạt động' : 'Đã Khóa'}
+                          {user.status === 'Active' ? 'Active' : 'Locked'}
                         </span>
                       </td>
                       <td className="p-4 text-right">
@@ -265,46 +264,46 @@ export default function UserManagement() {
         </main>
       </div>
 
-      {/* MODAL THÊM/SỬA */}
+      {/* ADD/EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-md shadow-sm w-full max-w-md animate-in zoom-in duration-200 overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                {editingId ? 'Sửa thông tin tài khoản' : 'Tạo tài khoản mới'}
+                {editingId ? 'Edit Account Information' : 'Create New Account'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20}/></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
-              <InputField label="Họ và Tên" value={formData.fullName} onChange={v => setFormData({...formData, fullName: v})} placeholder="VD: Nguyễn Văn A" />
+              <InputField label="Full Name" value={formData.fullName} onChange={v => setFormData({...formData, fullName: v})} placeholder="Ex: John Doe" />
               <div className="grid grid-cols-2 gap-4">
-                <InputField label="Tên đăng nhập" value={formData.username} disabled={!!editingId} onChange={v => setFormData({...formData, username: v})} placeholder="VD: nguyenva" />
-                <InputField label="Số điện thoại" value={formData.phone} onChange={v => setFormData({...formData, phone: v})} placeholder="090..." />
+                <InputField label="Username" value={formData.username} disabled={!!editingId} onChange={v => setFormData({...formData, username: v})} placeholder="Ex: johndoe" />
+                <InputField label="Phone Number" value={formData.phone} onChange={v => setFormData({...formData, phone: v})} placeholder="090..." />
               </div>
-              <InputField label="Mật khẩu" type="password" value={formData.password} onChange={v => setFormData({...formData, password: v})} placeholder={editingId ? 'Bỏ trống nếu không đổi mật khẩu' : 'Nhập ít nhất 6 ký tự'} />
+              <InputField label="Password" type="password" value={formData.password} onChange={v => setFormData({...formData, password: v})} placeholder={editingId ? 'Leave blank to keep current password' : 'Enter at least 6 characters'} />
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vai trò</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Role</label>
                   <select 
                     value={formData.role} 
                     onChange={e => setFormData({...formData, role: e.target.value, classRoom: e.target.value !== 'Teacher' ? '' : formData.classRoom})} 
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500"
                   >
-                    <option value="Teacher">Giáo viên</option>
-                    <option value="Kitchen">Nhà bếp</option>
-                    <option value="Parent">Phụ huynh</option>
+                    <option value="Teacher">Teacher</option>
+                    <option value="Kitchen">Kitchen</option>
+                    <option value="Parent">Parent</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
                   <select 
                     value={formData.status} 
                     onChange={e => setFormData({...formData, status: e.target.value})} 
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500"
                   >
-                    <option value="Active">Hoạt động</option>
-                    <option value="Inactive">Khóa tài khoản</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Locked</option>
                   </select>
                 </div>
               </div>
@@ -312,10 +311,10 @@ export default function UserManagement() {
               {formData.role === 'Teacher' && (
                 <div className="pt-2">
                   <InputField 
-                    label="Lớp chủ nhiệm (Bắt buộc)" 
+                    label="Homeroom Class (Required)" 
                     value={formData.classRoom} 
                     onChange={v => setFormData({...formData, classRoom: v})} 
-                    placeholder="VD: 1A" 
+                    placeholder="Ex: 1A" 
                   />
                 </div>
               )}
@@ -323,23 +322,23 @@ export default function UserManagement() {
               {formData.role === 'Parent' && (
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <InputField 
-                    label="Tên học sinh" 
+                    label="Student Name" 
                     value={formData.studentName} 
                     onChange={v => setFormData({...formData, studentName: v})} 
-                    placeholder="VD: Nguyễn Văn B" 
+                    placeholder="Ex: John Doe Jr." 
                   />
                   <InputField 
-                    label="Lớp học sinh" 
+                    label="Student Class" 
                     value={formData.studentClassRoom} 
                     onChange={v => setFormData({...formData, studentClassRoom: v})} 
-                    placeholder="VD: 1A" 
+                    placeholder="Ex: 1A" 
                   />
                 </div>
               )}
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded transition-all">Hủy</button>
-                <button type="submit" className="flex-1 py-2.5 font-bold bg-indigo-600 text-white rounded shadow-sm shadow-indigo-100 hover:bg-indigo-700 transition-all">Lưu tài khoản</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded transition-all">Cancel</button>
+                <button type="submit" className="flex-1 py-2.5 font-bold bg-indigo-600 text-white rounded shadow-sm shadow-indigo-100 hover:bg-indigo-700 transition-all">Save Account</button>
               </div>
             </form>
           </div>
@@ -361,14 +360,13 @@ export default function UserManagement() {
   );
 }
 
-// [ĐÃ SỬA]: Thêm whitespace-nowrap vào Label để chống lỗi phình to Sidebar
+// NavItem with whitespace-nowrap to prevent sidebar stretching
 function NavItem({ icon: Icon, label, active, onClick, expanded }) {
   return (
     <button 
       onClick={onClick} 
       className={`flex items-center gap-3 w-full p-3 rounded font-semibold text-[13px] transition-all relative group ${active ? 'bg-indigo-50 text-indigo-600 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
     >
-      <Icon size={18} className="shrink-0" />
       <span className={`whitespace-nowrap transition-all duration-300 ${expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
         {label}
       </span>

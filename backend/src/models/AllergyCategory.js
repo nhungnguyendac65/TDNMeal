@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/AllergyCategory.js
+// Path: backend/src/models/AllergyCategory.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 

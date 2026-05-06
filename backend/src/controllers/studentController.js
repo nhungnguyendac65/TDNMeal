@@ -1,51 +1,51 @@
-// [ĐÃ SỬA]: Thêm User vào danh sách require
+// [FIXED]: Added User to require list
 const { Student, StudentAllergy, AllergyCategory, MealRegistration, DailyMealSelection, User } = require('../models');
 const { Op } = require('sequelize');
 
 // ==========================================
-// 1. Lấy danh sách con + KÈM THEO CHI TIẾT DỊ ỨNG
+// 1. Get children list + INCLUDE ALLERGY DETAILS
 // ==========================================
 exports.getStudentsByParent = async (req, res) => {
     try {
         const { parentId } = req.params;
 
-        // Bước 1: Lấy danh sách học sinh cơ bản
+        // Step 1: Get basic student list
         const students = await Student.findAll({
             where: { ParentID: parentId }
         });
 
         if (!students || students.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy học sinh nào của phụ huynh này.' });
+            return res.status(404).json({ message: 'No students found for this parent.' });
         }
 
         const studentsData = [];
 
-        // Bước 2: Quét từng học sinh để gom chi tiết dị ứng
+        // Step 2: Scan each student to collect allergy details
         for (let student of students) {
-            let stData = student.toJSON(); // Chuyển sang JSON để dễ thêm thuộc tính mới
+            let stData = student.toJSON(); // Convert to JSON to easily add new properties
 
-            // Lôi bảng Dị ứng ra kiểm tra
+            // Check Allergy table
             const allergies = await StudentAllergy.findAll({
                 where: { StudentID: stData.StudentID || stData.id }
             });
 
             if (allergies && allergies.length > 0) {
-                stData.HasAllergy = true; // Bật cờ có dị ứng
+                stData.HasAllergy = true; // Set allergy flag to true
 
                 let notes = [];
                 for (let a of allergies) {
                     if (a.SpecificNote) {
-                        // Nếu có ghi chú chi tiết (VD: Tôm, Cua, Mực)
+                        // If there are detailed notes (e.g., Shrimp, Crab)
                         notes.push(a.SpecificNote);
                     } else if (a.CategoryID) {
-                        // Nếu không có chi tiết, lấy tên của Nhóm dị ứng (VD: Sữa)
+                        // If no details, get the name of the Allergy Category (e.g., Milk)
                         const cat = await AllergyCategory.findByPk(a.CategoryID);
                         if (cat) notes.push(cat.CategoryName);
                     }
                 }
 
-                // Nối các món lại thành chuỗi, ví dụ: "Tôm, Mực, Sữa"
-                stData.AllergyNote = notes.join(', ') || 'Có dị ứng';
+                // Join items into a string, e.g., "Shrimp, Squid, Milk"
+                stData.AllergyNote = notes.join(', ') || 'Has allergy';
             } else {
                 stData.HasAllergy = false;
                 stData.AllergyNote = '';
@@ -54,16 +54,16 @@ exports.getStudentsByParent = async (req, res) => {
             studentsData.push(stData);
         }
 
-        return res.status(200).json({ message: 'Thành công', data: studentsData });
+        return res.status(200).json({ message: 'Success', data: studentsData });
 
     } catch (error) {
-        console.error('Lỗi lấy danh sách học sinh:', error);
-        return res.status(500).json({ message: 'Lỗi server khi tìm học sinh.' });
+        console.error('Error fetching students:', error);
+        return res.status(500).json({ message: 'Server error while finding students.' });
     }
 };
 
 // ==========================================
-// 2. Cập nhật hồ sơ sức khỏe & Dị ứng (Giữ nguyên)
+// 2. Update health profile & Allergy (Keep existing)
 // ==========================================
 exports.updateHealthProfile = async (req, res) => {
     try {
@@ -71,18 +71,18 @@ exports.updateHealthProfile = async (req, res) => {
         const { Height, Weight, HasAllergy, AllergyDetails } = req.body;
 
         if (Height <= 0 || Weight <= 0) {
-            return res.status(400).json({ message: 'Chiều cao và cân nặng không hợp lệ (phải > 0).' });
+            return res.status(400).json({ message: 'Invalid height and weight (must be > 0).' });
         }
 
         if (HasAllergy === true && AllergyDetails && AllergyDetails.length > 0) {
             for (let item of AllergyDetails) {
                 if (item.SpecificNote) {
                     if (item.SpecificNote.length > 100) {
-                        return res.status(400).json({ message: 'Ghi chú dị ứng không được vượt quá 100 ký tự.' });
+                        return res.status(400).json({ message: 'Allergy note must not exceed 100 characters.' });
                     }
                     const regex = /^[a-zA-Z0-9\s,A-ZÀ-Ỹà-ỹ]*$/;
                     if (!regex.test(item.SpecificNote)) {
-                        return res.status(400).json({ message: 'Ghi chú dị ứng chứa ký tự không hợp lệ.' });
+                        return res.status(400).json({ message: 'Allergy note contains invalid characters.' });
                     }
                 }
             }
@@ -94,7 +94,7 @@ exports.updateHealthProfile = async (req, res) => {
         });
 
         if (!student) {
-            return res.status(403).json({ message: 'Bạn không có quyền cập nhật cho học sinh này.' });
+            return res.status(403).json({ message: 'You do not have permission to update this student.' });
         }
 
         student.Height = Height;
@@ -117,13 +117,13 @@ exports.updateHealthProfile = async (req, res) => {
         }
 
         return res.status(200).json({
-            message: 'Cập nhật hồ sơ sức khỏe thành công!',
+            message: 'Health profile updated successfully!',
             data: student
         });
 
     } catch (error) {
-        console.error('Lỗi cập nhật sức khỏe:', error);
-        return res.status(500).json({ message: 'Lỗi hệ thống.' });
+        console.error('Error updating health profile:', error);
+        return res.status(500).json({ message: 'System error.' });
     }
 };
 
@@ -131,94 +131,94 @@ exports.getStudentDashboard = async (req, res) => {
     try {
         const { id } = req.params;
         const student = await Student.findByPk(id);
-        if (!student) return res.status(404).json({ message: 'Không tìm thấy học sinh' });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        // Lấy tháng hiện tại (Format: YYYY-MM)
+        // Get current month (Format: YYYY-MM)
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        // 1. TÌM TẤT CẢ CÁC PHIẾU ĐĂNG KÝ (Từ tháng hiện tại trở về sau)
+        // 1. FIND ALL REGISTRATIONS (From current month onwards)
         const registrations = await MealRegistration.findAll({
             where: {
                 StudentID: id,
-                Status: { [Op.ne]: 'Cancelled' }, // Bỏ qua mấy phiếu đã hủy
-                Month: { [Op.gte]: currentMonthStr } // Lấy từ tháng này trở đi
+                Status: { [Op.ne]: 'Cancelled' }, // Skip cancelled registrations
+                Month: { [Op.gte]: currentMonthStr } // Get from this month onwards
             }
         });
 
         let totalBalance = 0;
-        let regStatus = 'Chưa đăng ký';
+        let regStatus = 'Not registered';
 
         if (registrations.length > 0) {
-            // 2. XÁC ĐỊNH TRẠNG THÁI HIỂN THỊ TRÊN DASHBOARD
-            // Nếu có bất kỳ phiếu nào đang chờ thanh toán -> Báo màu cam
+            // 2. DETERMINE DISPLAY STATUS ON DASHBOARD
+            // If any registration is pending payment -> Show orange alert
             const hasPending = registrations.some(r => r.Status === 'Pending Payment' || r.Status === 'Pending');
             const hasPaid = registrations.some(r => r.Status === 'Paid');
 
             if (hasPending) {
-                regStatus = 'Chờ thanh toán';
+                regStatus = 'Pending payment';
             } else if (hasPaid) {
-                regStatus = 'Đã đăng ký';
+                regStatus = 'Registered';
             }
 
-            // 3. VÒNG LẶP: CỘNG DỒN SỐ DƯ BỮA ĂN CỦA TẤT CẢ CÁC THÁNG ĐÃ ĐÓNG TIỀN
+            // 3. LOOP: AGGREGATE MEAL BALANCE FROM ALL PAID MONTHS
             const paidRegs = registrations.filter(r => r.Status === 'Paid');
 
             for (let i = 0; i < paidRegs.length; i++) {
                 const reg = paidRegs[i];
-                // Lấy khóa chính (có thể là RegistrationID hoặc id tùy schema của bạn)
+                // Get primary key (RegistrationID or id depending on schema)
                 const regKey = reg.RegistrationID || reg.id;
 
-                // Đếm số ngày đã chọn món của cái phiếu này
+                // Count selected meal days for this registration
                 const usedDays = await DailyMealSelection.count({
                     where: { RegistrationID: regKey }
                 });
 
-                // Cộng dồn: Tổng ngày của tháng đó - Số ngày đã ăn
+                // Aggregate: Total days of that month - Number of consumed days
                 totalBalance += (reg.TotalDays - usedDays);
             }
         }
 
-        // Trả kết quả về cho Frontend
+        // Return results to Frontend
         return res.status(200).json({
             data: {
                 ...student.toJSON(),
-                registrationStatus: regStatus, // Ví dụ: 'Đã đăng ký'
-                mealBalance: totalBalance      // Ví dụ: 22 + 21 = 43 bữa
+                registrationStatus: regStatus, // Example: 'Registered'
+                mealBalance: totalBalance      // Example: 22 + 21 = 43 meals
             }
         });
     } catch (error) {
-        console.error('Lỗi tính toán Dashboard:', error);
-        res.status(500).json({ message: 'Lỗi lấy dữ liệu dashboard' });
+        console.error('Dashboard calculation error:', error);
+        res.status(500).json({ message: 'Error fetching dashboard data' });
     }
 };
 
 
-// API THỐNG KÊ DASHBOARD (Lấy dữ liệu thật 100% từ Database)
+// DASHBOARD STATS API (Get 100% real data from Database)
 exports.getDashboardStats = async (req, res) => {
     try {
-        const { id } = req.params; // ID của học sinh
+        const { id } = req.params; // Student ID
 
-        // 1. Tìm các tháng mà học sinh này ĐÃ THANH TOÁN
+        // 1. Find months where this student has PAID
         const regs = await MealRegistration.findAll({
             where: { StudentID: id, Status: 'Paid' }
         });
 
         const regIds = regs.map(r => r.RegistrationID || r.id);
 
-        // Nếu chưa đóng tiền tháng nào -> Trả về mảng rỗng
+        // If no month paid -> Return empty arrays
         if (regIds.length === 0) {
             return res.status(200).json({
                 data: { barData: [], pieData: [], lineData: [], upcomingMeals: [] }
             });
         }
 
-        // 2. Lấy TẤT CẢ các món ăn (Mặn/Chay) mà phụ huynh đã click chọn
+        // 2. Get ALL meals (Standard/Vegetarian) selected by parent
         const selections = await DailyMealSelection.findAll({
             where: { RegistrationID: regIds }
         });
 
-        // 3. TÍNH TOÁN BIỂU ĐỒ TRÒN (Pie Chart): Tỉ lệ Mặn / Chay
+        // 3. PIE CHART CALCULATION: Ratio of Standard / Vegetarian
         let manCount = 0;
         let chayCount = 0;
         selections.forEach(s => {
@@ -227,53 +227,53 @@ exports.getDashboardStats = async (req, res) => {
         });
 
         const pieData = [];
-        if (manCount > 0) pieData.push({ name: 'Suất Mặn', value: manCount });
-        if (chayCount > 0) pieData.push({ name: 'Suất Chay', value: chayCount });
+        if (manCount > 0) pieData.push({ name: 'Standard Meal', value: manCount });
+        if (chayCount > 0) pieData.push({ name: 'Vegetarian Meal', value: chayCount });
 
-        // 4. LẤY DANH SÁCH 3 BỮA ĂN SẮP TỚI NHẤT
-        // Lấy ngày hôm nay theo chuẩn YYYY-MM-DD
+        // 4. GET TOP 3 UPCOMING MEALS
+        // Get today's date in YYYY-MM-DD standard
         const todayStr = new Date().toISOString().substring(0, 10);
 
         const upcomingMeals = selections
-            .filter(s => String(s.Date).substring(0, 10) >= todayStr) // Chỉ lấy các ngày từ hôm nay trở đi
-            .sort((a, b) => String(a.Date).localeCompare(String(b.Date))) // Sắp xếp ngày gần nhất lên đầu
-            .slice(0, 3) // Lấy đúng 3 ngày
+            .filter(s => String(s.Date).substring(0, 10) >= todayStr) // Only get dates from today onwards
+            .sort((a, b) => String(a.Date).localeCompare(String(b.Date))) // Sort closest date first
+            .slice(0, 3) // Get exactly 3 days
             .map((s, index) => {
                 const dateStr = String(s.Date).substring(0, 10); // YYYY-MM-DD
                 const formattedDate = `${dateStr.substring(8, 10)}/${dateStr.substring(5, 7)}/${dateStr.substring(0, 4)}`; // DD/MM/YYYY
                 return {
                     id: index + 1,
                     date: formattedDate,
-                    type: s.MealType === 'Standard' ? 'Suất Mặn' : 'Suất Chay',
-                    status: 'Đã chốt'
+                    type: s.MealType === 'Standard' ? 'Standard Meal' : 'Vegetarian Meal',
+                    status: 'Confirmed'
                 };
             });
 
-        // 5. BIỂU ĐỒ CỘT (Mô phỏng đơn giản số bữa ăn trong tuần)
+        // 5. BAR CHART (Simple weekly meal simulation)
         const barData = [
-            { day: 'T2', meals: 1 }, { day: 'T3', meals: 1 },
-            { day: 'T4', meals: 1 }, { day: 'T5', meals: chayCount > 0 ? 1 : 0 }, { day: 'T6', meals: manCount > 0 ? 1 : 0 }
+            { day: 'Mon', meals: 1 }, { day: 'Tue', meals: 1 },
+            { day: 'Wed', meals: 1 }, { day: 'Thu', meals: chayCount > 0 ? 1 : 0 }, { day: 'Fri', meals: manCount > 0 ? 1 : 0 }
         ];
 
-        // 6. BIỂU ĐỒ ĐƯỜNG (Mô phỏng xu hướng)
+        // 6. LINE CHART (Trend simulation)
         const lineData = [
-            { week: 'Tuần 1', orders: 4 }, { week: 'Tuần 2', orders: 5 },
-            { week: 'Tuần 3', orders: 5 }, { week: 'Tuần 4', orders: 5 }
+            { week: 'Week 1', orders: 4 }, { week: 'Week 2', orders: 5 },
+            { week: 'Week 3', orders: 5 }, { week: 'Week 4', orders: 5 }
         ];
 
-        // Trả toàn bộ dữ liệu thật về cho Frontend
+        // Return all real data to Frontend
         return res.status(200).json({
             data: { barData, pieData, lineData, upcomingMeals }
         });
 
     } catch (error) {
-        console.error("Lỗi Dashboard Stats:", error);
-        res.status(500).json({ message: 'Lỗi server khi lấy thống kê' });
+        console.error("Dashboard Stats Error:", error);
+        res.status(500).json({ message: 'Server error while fetching stats' });
     }
 };
 
 // ==========================================
-// Lấy danh sách toàn trường
+// Get school-wide student list
 // ==========================================
 exports.getAllStudents = async (req, res) => {
     try {
@@ -293,7 +293,7 @@ exports.getAllStudents = async (req, res) => {
             }
         };
 
-        // [THIẾU CHỖ NÀY NÈ SẾP]: Phải gọi Database để lấy học sinh ra!
+        // Fetch students
         const students = await Student.findAll({
             where: condition,
             include: [{
@@ -306,11 +306,11 @@ exports.getAllStudents = async (req, res) => {
 
         const formattedData = [];
 
-        // 2. Vòng lặp gom chi tiết dị ứng từ bảng StudentAllergy của sếp
+        // 2. Loop to gather allergy details from StudentAllergy table
         for (let student of students) {
             let s = student.toJSON();
 
-            // Tìm dị ứng của bé này
+            // Find allergies for this child
             const allergies = await StudentAllergy.findAll({
                 where: { StudentID: s.StudentID || s.id }
             });
@@ -326,15 +326,15 @@ exports.getAllStudents = async (req, res) => {
                         if (cat) notes.push(cat.CategoryName);
                     }
                 }
-                allergyNote = notes.join(', '); // Nối lại thành "Tôm, Sữa bò..."
+                allergyNote = notes.join(', ');
             }
 
-            // Gói ghém dữ liệu đẩy về Frontend
+            // Prepare data for Frontend
             formattedData.push({
                 id: s.StudentID || s.id,
                 fullName: s.FullName,
-                classRoom: s.ClassRoom || 'Chưa cập nhật',
-                parentName: s.parent ? s.parent.FullName : 'Chưa cập nhật',
+                classRoom: s.ClassRoom || 'Not updated',
+                parentName: s.parent ? s.parent.FullName : 'Not updated',
                 parentPhone: s.parent ? s.parent.Phone : '',
                 allergies: allergyNote,
                 status: 'Registered',
@@ -345,22 +345,22 @@ exports.getAllStudents = async (req, res) => {
 
         res.status(200).json({ data: formattedData });
     } catch (error) {
-        console.error("Lỗi lấy danh sách học sinh:", error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error("Error fetching student list:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 // ==========================================
-// [SỬA LẠI] Thêm học sinh mới
+// Add new student
 // ==========================================
 exports.createStudent = async (req, res) => {
     try {
         const { fullName, classRoom, parentId, allergies, status, height, weight } = req.body;
 
-        // Tạo học sinh cơ bản
+        // Create basic student record
         const newStudent = await Student.create({
             FullName: fullName,
-            ClassRoom: classRoom || 'Chưa xếp lớp',
+            ClassRoom: classRoom || 'Unassigned',
             ParentID: parentId || null,
             Gender: 'Male', 
             Height: height || 0, 
@@ -368,9 +368,9 @@ exports.createStudent = async (req, res) => {
             HealthProfileCompleted: false
         });
 
-        // Nếu sếp có nhập Dị ứng ở Frontend, tạo luôn record vào bảng StudentAllergy
+        // If Frontend provides Allergies, create a record in StudentAllergy table
         if (allergies && allergies.trim() !== '') {
-            const otherCategory = await AllergyCategory.findOne({ where: { CategoryName: 'Khác' } });
+            const otherCategory = await AllergyCategory.findOne({ where: { CategoryName: 'Other' } });
             const catId = otherCategory ? otherCategory.CategoryID : 1;
 
             await StudentAllergy.create({
@@ -380,23 +380,23 @@ exports.createStudent = async (req, res) => {
             });
         }
 
-        res.status(201).json({ message: 'Đã thêm học sinh', data: newStudent });
+        res.status(201).json({ message: 'Student added', data: newStudent });
     } catch (error) {
-        console.error("Lỗi tạo học sinh:", error);
-        res.status(500).json({ message: 'Lỗi khi thêm học sinh' });
+        console.error("Error creating student:", error);
+        res.status(500).json({ message: 'Error while adding student' });
     }
 };
 
-// 3. Cập nhật thông tin học sinh
+// 3. Update student info
 exports.updateStudent = async (req, res) => {
     try {
         const { id } = req.params;
         const { fullName, classRoom, allergies, status, height, weight } = req.body;
 
         const student = await Student.findByPk(id);
-        if (!student) return res.status(404).json({ message: 'Không tìm thấy học sinh!' });
+        if (!student) return res.status(404).json({ message: 'Student not found!' });
 
-        // Cập nhật bảng Student
+        // Update Student table
         await student.update({
             FullName: fullName,
             ClassRoom: classRoom,
@@ -408,7 +408,7 @@ exports.updateStudent = async (req, res) => {
         if (allergies !== undefined) {
             await StudentAllergy.destroy({ where: { StudentID: id } });
             if (allergies.trim() !== '') {
-                const otherCategory = await AllergyCategory.findOne({ where: { CategoryName: 'Khác' } });
+                const otherCategory = await AllergyCategory.findOne({ where: { CategoryName: 'Other' } });
                 const catId = otherCategory ? otherCategory.CategoryID : 1;
 
                 await StudentAllergy.create({
@@ -418,24 +418,24 @@ exports.updateStudent = async (req, res) => {
                 });
             }
         }
-        res.status(200).json({ message: 'Cập nhật thành công!' });
+        res.status(200).json({ message: 'Updated successfully!' });
     } catch (error) {
-        console.error("Lỗi cập nhật:", error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error("Update error:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-// 4. Xóa học sinh
+// 4. Delete student
 exports.deleteStudent = async (req, res) => {
     try {
         const { id } = req.params;
-        // Xóa dị ứng trước để tránh lỗi khóa ngoại
+        // Delete allergies first to avoid foreign key errors
         await StudentAllergy.destroy({ where: { StudentID: id } });
         await Student.destroy({ where: { StudentID: id } });
 
-        res.status(200).json({ message: 'Đã xóa hồ sơ học sinh!' });
+        res.status(200).json({ message: 'Student profile deleted!' });
     } catch (error) {
-        console.error("Lỗi xóa:", error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error("Delete error:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

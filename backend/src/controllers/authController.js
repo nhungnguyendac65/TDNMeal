@@ -5,15 +5,15 @@ const { Op } = require('sequelize');
 
 exports.login = async (req, res) => {
     try {
-        // 1. Lấy dữ liệu từ Frontend gửi lên (Bao lô cả username hoặc Phone)
+        // 1. Get data from Frontend (username or Phone)
         const loginId = req.body.username || req.body.Phone; 
         const loginPass = req.body.password || req.body.Password;
 
         if (!loginId || !loginPass) {
-            return res.status(400).json({ message: 'Vui lòng nhập tài khoản và mật khẩu!' });
+            return res.status(400).json({ message: 'Please enter account and password!' });
         }
 
-        // 2. Tìm user theo Số điện thoại HOẶC Tên đăng nhập
+        // 2. Find user by Phone OR Username
         const user = await User.findOne({ 
             where: { 
                 [Op.or]: [
@@ -24,22 +24,22 @@ exports.login = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
+            return res.status(401).json({ message: 'Incorrect account or password' });
         }
 
-        // 3. Kiểm tra mật khẩu
+        // 3. Verify password
         const isMatch = await bcrypt.compare(loginPass, user.PasswordHash);
         
         if (!isMatch) {
-            return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
+            return res.status(401).json({ message: 'Incorrect account or password' });
         }
 
-        // 4. Kiểm tra trạng thái tài khoản
+        // 4. Check account status
         if (user.Status === 'Inactive') {
-            return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa' });
+            return res.status(403).json({ message: 'Your account has been locked' });
         }
 
-        // 5. Tạo JWT Token
+        // 5. Generate JWT Token
         const payload = {
             userId: user.UserID,
             role: user.Role,
@@ -48,9 +48,9 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign(payload, process.env.JWT_SECRET || 'trandainghia_secret_key', { expiresIn: '1d' });
 
-        // 6. Trả về kết quả cho Frontend
+        // 6. Return response to Frontend
         res.status(200).json({
-            message: 'Đăng nhập thành công',
+            message: 'Login successful',
             token,
             user: {
                 id: user.UserID,
@@ -62,32 +62,32 @@ exports.login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Lỗi đăng nhập:', error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 exports.updateProfile = async (req, res) => {
     try {
-        console.log("--- BẮT ĐẦU CẬP NHẬT HỒ SƠ ---");
-        console.log("UserID từ Token:", req.user?.userId);
-        console.log("Dữ liệu nhận được:", req.body);
+        console.log("--- STARTING PROFILE UPDATE ---");
+        console.log("UserID from Token:", req.user?.userId);
+        console.log("Received data:", req.body);
 
         const userId = req.user.userId;
         const { FullName, Phone, Password } = req.body;
 
         const user = await User.findByPk(userId);
         if (!user) {
-            console.log("LỖI: Không tìm thấy User với ID:", userId);
+            console.log("ERROR: User not found with ID:", userId);
             return res.status(404).json({ message: 'User not found' });
         }
 
         if (Phone && Phone !== user.Phone) {
-            console.log("Yêu cầu đổi Phone từ", user.Phone, "thành", Phone);
+            console.log("Request to change Phone from", user.Phone, "to", Phone);
             const existingPhone = await User.findOne({ where: { Phone, UserID: { [Op.ne]: userId } } });
             if (existingPhone) {
-                console.log("LỖI: Số điện thoại đã tồn tại:", Phone);
-                return res.status(400).json({ message: 'Số điện thoại này đã được sử dụng bởi người khác' });
+                console.log("ERROR: Phone number already exists:", Phone);
+                return res.status(400).json({ message: 'This phone number is already used by another account' });
             }
             user.Phone = Phone;
         }
@@ -97,18 +97,18 @@ exports.updateProfile = async (req, res) => {
         }
 
         if (Password && Password.trim() !== '') {
-            console.log("Tiến hành băm mật khẩu mới...");
+            console.log("Hashing new password...");
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(Password, salt);
             user.PasswordHash = hashedPassword;
-            console.log("Đã băm xong mật khẩu.");
+            console.log("Password hashed successfully.");
         }
 
         await user.save();
-        console.log("Lưu User vào Database thành công!");
+        console.log("User saved to Database successfully!");
 
         res.status(200).json({
-            message: 'Cập nhật hồ sơ thành công',
+            message: 'Profile updated successfully',
             user: {
                 id: user.UserID,
                 fullName: user.FullName,
@@ -118,7 +118,7 @@ exports.updateProfile = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Lỗi cập nhật hồ sơ:', error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

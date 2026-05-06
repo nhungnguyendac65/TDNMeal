@@ -1,6 +1,6 @@
 const { User } = require('../models');
 
-// 1. Lấy danh sách tất cả tài khoản
+// 1. Get all accounts list
 exports.getAllUsers = async (req, res) => {
     try {
         const { Student } = require('../models');
@@ -29,12 +29,12 @@ exports.getAllUsers = async (req, res) => {
 
         res.status(200).json({ data: formattedData });
     } catch (error) {
-        console.error("Lỗi lấy danh sách User:", error);
-        res.status(500).json({ message: 'Lỗi server khi tải danh sách người dùng' });
+        console.error("Error fetching User list:", error);
+        res.status(500).json({ message: 'Server error while loading user list' });
     }
 };
 
-// 2. Tạo tài khoản mới
+// 2. Create new account
 
 exports.createUser = async (req, res) => {
     try {
@@ -55,7 +55,7 @@ exports.createUser = async (req, res) => {
             const { Student } = require('../models');
             await Student.create({
                 FullName: studentName,
-                ClassRoom: studentClassRoom || 'Chưa xếp lớp',
+                ClassRoom: studentClassRoom || 'Unassigned',
                 ParentID: newUser.UserID,
                 Gender: 'Male',
                 Height: 0,
@@ -64,20 +64,20 @@ exports.createUser = async (req, res) => {
             });
         }
 
-        res.status(201).json({ message: 'Tạo tài khoản thành công!' });
+        res.status(201).json({ message: 'Account created successfully!' });
     } catch (error) {
-        console.error("Lỗi:", error);
-        res.status(500).json({ message: 'Tên đăng nhập hoặc SĐT đã tồn tại!' });
+        console.error("Error:", error);
+        res.status(500).json({ message: 'Username or Phone number already exists!' });
     }
 };
 
-// 3. Cập nhật thông tin
+// 3. Update information
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
         const { fullName, role, phone, status, classRoom, password, studentName, studentClassRoom } = req.body;
         const user = await User.findByPk(id);
-        if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản!' });
+        if (!user) return res.status(404).json({ message: 'Account not found!' });
 
         const updateData = {
             FullName: fullName,
@@ -105,7 +105,7 @@ exports.updateUser = async (req, res) => {
             } else {
                 await Student.create({
                     FullName: studentName,
-                    ClassRoom: studentClassRoom || 'Chưa xếp lớp',
+                    ClassRoom: studentClassRoom || 'Unassigned',
                     ParentID: user.UserID,
                     Gender: 'Male',
                     Height: 0,
@@ -115,40 +115,40 @@ exports.updateUser = async (req, res) => {
             }
         }
 
-        res.status(200).json({ message: 'Cập nhật thành công!' });
+        res.status(200).json({ message: 'Updated successfully!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi server' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-// 4. Xóa tài khoản
+// 4. Delete account
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
         const user = await User.findByPk(id);
-        if (!user) return res.status(404).json({ message: 'Không tìm thấy!' });
+        if (!user) return res.status(404).json({ message: 'Not found!' });
 
         await user.destroy();
-        res.status(200).json({ message: 'Đã xóa!' });
+        res.status(200).json({ message: 'Deleted!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi server' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-// 5. Thống kê cho Dashboard Admin
+// 5. Admin Dashboard Statistics
 const { Student, MealRegistration, DailyMenu, StudentAllergy, AllergyCategory, DailyMealSelection } = require('../models');
 
 exports.getAdminStats = async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
 
-        // 1. Tổng học sinh đăng ký
+        // 1. Total registered students
         const totalStudents = await Student.count();
 
-        // 2. Số lượng đăng ký ăn trong ngày (DailyMealSelection cho ngày hôm nay)
+        // 2. Meal selections today (DailyMealSelection for today)
         const mealsToday = await DailyMealSelection.count({ where: { Date: today } });
 
-        // 3. Thực đơn chờ phê duyệt
+        // 3. Menus awaiting approval
         const pendingMenusRaw = await DailyMenu.findAll({ 
             where: { Status: 'Submitted' },
             order: [['MenuDate', 'ASC']]
@@ -156,10 +156,10 @@ exports.getAdminStats = async (req, res) => {
         
         const pendingMenus = pendingMenusRaw.map(m => ({ id: m.MenuID, date: m.MenuDate, status: m.Status }));
 
-        // 4. Các khoản chưa thanh toán
+        // 4. Unpaid registrations
         const unpaidCount = await MealRegistration.count({ where: { Status: 'Pending Payment' } });
 
-        // 5. Cảnh báo dị ứng
+        // 5. Allergy warnings
         const recentAllergiesRaw = await StudentAllergy.findAll({
             include: [
                 { model: Student, attributes: ['FullName'] },
@@ -171,12 +171,12 @@ exports.getAdminStats = async (req, res) => {
         
         const recentAllergies = recentAllergiesRaw.map(a => ({
             id: a.id,
-            studentName: a.Student?.FullName || 'Ẩn danh',
-            allergy: a.AllergyCategory?.CategoryName || 'Khác',
+            studentName: a.Student?.FullName || 'Anonymous',
+            allergy: a.AllergyCategory?.CategoryName || 'Other',
             note: a.SpecificNote || ''
         }));
 
-        // 6. Thực đơn hôm nay
+        // 6. Today's menu
         const todayMenuData = await DailyMenu.findOne({ where: { MenuDate: today } });
         let todayMenu = null;
         if (todayMenuData) {
@@ -193,24 +193,35 @@ exports.getAdminStats = async (req, res) => {
             };
         }
 
-        // 7. Mock biểu đồ
-        const barData = [
-            { day: 'T2', meals: 120 },
-            { day: 'T3', meals: 135 },
-            { day: 'T4', meals: Math.max(mealsToday, 140) },
-            { day: 'T5', meals: 0 },
-            { day: 'T6', meals: 0 }
-        ];
+        // 7. Bar chart data (Weekly meal trends: Mon -> Fri)
+        const barData = [];
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        
+        // Calculate Monday of current week
+        const curr = new Date();
+        const first = curr.getDate() - curr.getDay() + 1; // Monday
+        
+        for (let i = 0; i < 5; i++) {
+            const dayDate = new Date(curr.setDate(first + i)).toISOString().split('T')[0];
+            const count = await DailyMealSelection.count({ where: { Date: dayDate } });
+            barData.push({ day: dayNames[i], meals: count });
+            // Reset curr for next calculation
+            curr.setDate(first + i); 
+        }
+
+        // 8. Pie chart data (Standard / Vegetarian distribution today)
+        const standardCount = await DailyMealSelection.count({ where: { Date: today, MealType: 'Standard' } });
+        const vegetarianCount = await DailyMealSelection.count({ where: { Date: today, MealType: 'Vegetarian' } });
 
         const pieData = [
-            { name: 'Suất mặn', value: 280 },
-            { name: 'Suất chay', value: 45 }
+            { name: 'Standard', value: standardCount },
+            { name: 'Vegetarian', value: vegetarianCount }
         ];
 
         res.status(200).json({
             data: {
                 studentCount: totalStudents,
-                mealsToday: mealsToday || 120, // Dự phòng 120 nếu database rỗng
+                mealsToday: mealsToday,
                 pendingMenuCount: pendingMenus.length,
                 pendingMenus: pendingMenus.slice(0, 4),
                 unpaidCount: unpaidCount,
@@ -221,7 +232,7 @@ exports.getAdminStats = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Lỗi getAdminStats:", error);
-        res.status(500).json({ message: 'Lỗi thống kê' });
+        console.error("Error in getAdminStats:", error);
+        res.status(500).json({ message: 'Statistics error' });
     }
 };

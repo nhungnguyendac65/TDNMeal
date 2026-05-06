@@ -3,11 +3,11 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const { verifyToken, checkRole } = require('../middlewares/authMiddleware');
 
-// Cả Admin và Giáo viên đều được xem và duyệt (Backend đã chặn data theo lớp ở trong controller)
+// Both Admin and Teacher can view and approve (Backend filters data by class in controller)
 router.get('/', verifyToken, checkRole(['Admin', 'Teacher']), paymentController.getAllPayments);
 router.put('/:id', verifyToken, checkRole(['Admin', 'Teacher']), paymentController.updatePaymentStatus);
 
-// API riêng cho Admin báo bếp
+// Specific API for Admin to notify kitchen
 router.post('/inform-kitchen', verifyToken, checkRole(['Admin']), paymentController.informKitchen);
 
 module.exports = router;

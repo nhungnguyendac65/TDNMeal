@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/Supplier.js
+// Path: backend/src/models/Supplier.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -17,11 +17,11 @@ const Supplier = sequelize.define('Supplier', {
         allowNull: true
     },
     CertStatus: {
-        type: DataTypes.STRING, // Ví dụ: 'VietGAP', 'ISO 22000'
+        type: DataTypes.STRING, // Example: 'VietGAP', 'ISO 22000'
         allowNull: true
     },
     CertExpDate: {
-        type: DataTypes.DATEONLY, // Ngày hết hạn chứng nhận
+        type: DataTypes.DATEONLY, // Certificate expiration date
         allowNull: true
     },
     Status: {

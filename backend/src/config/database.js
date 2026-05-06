@@ -1,8 +1,8 @@
-// Đường dẫn: backend/src/config/database.js
+// Path: backend/src/config/database.js
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Khởi tạo kết nối Sequelize
+// Initialize Sequelize connection
 const sequelize = process.env.DATABASE_URL 
     ? new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
@@ -26,13 +26,13 @@ const sequelize = process.env.DATABASE_URL
         }
     );
 
-// Hàm kiểm tra kết nối
+// Connection test function
 const connectDB = async () => {
     try {
         await sequelize.authenticate();
-        console.log('Kết nối đến PostgreSQL (trandainghia_meal_system) thành công!');
+        console.log('Connection to PostgreSQL (trandainghia_meal_system) established successfully!');
     } catch (error) {
-        console.error('Không thể kết nối đến database:', error);
+        console.error('Unable to connect to database:', error);
     }
 };
 

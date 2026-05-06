@@ -4,7 +4,7 @@ const studentController = require('../controllers/studentController');
 const { verifyToken, checkRole } = require('../middlewares/authMiddleware');
 
 // API: PUT /api/students/:id/health-profile
-// Đi qua cửa 1 (verifyToken) -> Đi qua cửa 2 (checkRole Parent) -> Vào Controller
+// Pass verifyToken -> Pass checkRole Parent -> Enter Controller
 router.put('/:id/health-profile', verifyToken, checkRole(['Parent']), studentController.updateHealthProfile);
 router.get('/parent/:parentId', studentController.getStudentsByParent);
 router.get('/dashboard/:id', studentController.getStudentDashboard);

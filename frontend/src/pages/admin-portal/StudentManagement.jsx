@@ -12,21 +12,21 @@ export default function StudentManagement() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const navigate = useNavigate();
-  const [lang, setLang] = useState('vi');
+  const [lang, setLang] = useState('en');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
-  const currentUser = JSON.parse(localStorage.getItem('user')) || { role: 'Guest' };
-  const userRole = currentUser.role;
+  const currentUser = JSON.parse(localStorage.getItem('user')) || { Role: 'Guest', role: 'Guest' };
+  const userRole = currentUser.Role || currentUser.role;
 
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterClass, setFilterClass] = useState('Tất cả'); 
+  const [filterClass, setFilterClass] = useState('All'); 
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
-  // [ĐÃ SỬA]: Thêm height và weight vào formData
+  // [FIXED]: Added height and weight to formData
   const [formData, setFormData] = useState({
     fullName: '', classRoom: '', parentId: '', allergies: '', status: 'Registered', height: '', weight: ''
   });
@@ -34,10 +34,10 @@ export default function StudentManagement() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const t = {
-    title: "Hồ sơ học sinh",
-    subtitle: userRole === 'Teacher' ? "Quản lý danh sách học sinh lớp chủ nhiệm." : "Quản lý danh sách học sinh, lớp học và ghi chú dị ứng toàn trường.",
-    searchPlh: "Tìm tên học sinh...",
-    addBtn: "Thêm Học sinh",
+    title: "Student Profiles",
+    subtitle: userRole === 'Teacher' ? "Manage students in your assigned class." : "Manage student profiles, classes, and allergy notes school-wide.",
+    searchPlh: "Search student name...",
+    addBtn: "Add Student",
   };
 
   const fetchStudents = async () => {
@@ -46,7 +46,7 @@ export default function StudentManagement() {
       const res = await api.get('/students');
       setStudents(res.data?.data || []);
     } catch (error) {
-      showToast("Không thể tải danh sách học sinh", "error");
+      showToast("Could not load student list", "error");
     } finally {
       setIsLoading(false);
     }
@@ -64,26 +64,26 @@ export default function StudentManagement() {
     try {
       if (editingId) {
         await api.put(`/students/${editingId}`, formData);
-        showToast("Cập nhật thông tin thành công!");
+        showToast("Profile updated successfully!");
       } else {
         await api.post('/students', formData);
-        showToast("Đã thêm học sinh mới!");
+        showToast("New student added!");
       }
       setIsModalOpen(false);
       fetchStudents();
     } catch (error) {
-      showToast("Lỗi khi lưu dữ liệu", "error");
+      showToast("Error saving data", "error");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa hồ sơ học sinh này vĩnh viễn?")) return;
+    if (!window.confirm("Are you sure you want to permanently delete this student profile?")) return;
     try {
       await api.delete(`/students/${id}`);
-      showToast("Đã xóa hồ sơ học sinh");
+      showToast("Student profile deleted");
       fetchStudents();
     } catch (error) {
-      showToast("Lỗi khi xóa", "error");
+      showToast("Error deleting", "error");
     }
   };
 
@@ -92,7 +92,7 @@ export default function StudentManagement() {
   const filteredStudents = students.filter(s => {
     const matchSearch = s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         s.classRoom?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchClass = filterClass === 'Tất cả' || s.classRoom === filterClass;
+    const matchClass = filterClass === 'All' || s.classRoom === filterClass;
     return matchSearch && matchClass;
   });
 
@@ -106,16 +106,15 @@ export default function StudentManagement() {
         className={`bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen transition-all duration-300 z-50 ${isSidebarExpanded ? 'w-64 shadow-sm' : 'w-20'}`}
       >
         <div className="p-6 border-b border-slate-100 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white shrink-0 shadow-sm"><Shield size={20}/></div>
           <span className={`font-bold text-lg tracking-tight text-slate-900 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>TMS ADMIN</span>
         </div>
         
         <nav className="flex-1 p-4 space-y-1 mt-2 overflow-hidden">
           {userRole === 'Admin' && <NavItem icon={LayoutDashboard} label="Dashboard" expanded={isSidebarExpanded} onClick={() => navigate('/admin/dashboard')} />}
-          {userRole === 'Admin' && <NavItem icon={Users} label="Người dùng" expanded={isSidebarExpanded} onClick={() => navigate('/admin/users')} />}
-          <NavItem icon={GraduationCap} label="Học sinh" active expanded={isSidebarExpanded} onClick={() => navigate('/admin/students')} />
-          {userRole === 'Admin' && <NavItem icon={Utensils} label="Thực đơn" expanded={isSidebarExpanded} onClick={() => navigate('/admin/menus')} />}
-          {(userRole === 'Admin' || userRole === 'Teacher') && <NavItem icon={CreditCard} label="Thanh toán" expanded={isSidebarExpanded} onClick={() => navigate('/admin/payments')} />}
+          {userRole === 'Admin' && <NavItem icon={Users} label="Users" expanded={isSidebarExpanded} onClick={() => navigate('/admin/users')} />}
+          <NavItem icon={GraduationCap} label="Students" active expanded={isSidebarExpanded} onClick={() => navigate('/admin/students')} />
+          {userRole === 'Admin' && <NavItem icon={Utensils} label="Menus" expanded={isSidebarExpanded} onClick={() => navigate('/admin/menus')} />}
+          {(userRole === 'Admin' || userRole === 'Teacher') && <NavItem icon={CreditCard} label="Payments" expanded={isSidebarExpanded} onClick={() => navigate('/admin/payments')} />}
         </nav>
       </aside>
 
@@ -123,7 +122,7 @@ export default function StudentManagement() {
         
         {/* TOPBAR */}
         <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-20">
-          <h2 className="font-semibold text-slate-400 text-xs hidden md:block uppercase tracking-wider">{currentUser.fullName} - {userRole}</h2>
+          <h2 className="font-semibold text-slate-400 text-xs hidden md:block uppercase tracking-wider">{currentUser.fullName}</h2>
           
           <div className="flex items-center gap-4">
             <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Bell size={18} /></button>
@@ -137,11 +136,11 @@ export default function StudentManagement() {
               
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] transform origin-top-right translate-y-2 group-hover:translate-y-0">
                 <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-md">
-                  <p className="text-[13px] font-bold text-slate-800">Tài khoản</p>
+                  <p className="text-[13px] font-bold text-slate-800">Account</p>
                 </div>
                 <div className="p-1.5">
-                  <button onClick={() => setIsProfileModalOpen(true)} className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded transition-colors font-semibold">Thay đổi mật khẩu</button>
-                  <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors font-bold mt-1">Đăng xuất</button>
+                  <button onClick={() => setIsProfileModalOpen(true)} className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded transition-colors font-semibold">Change password</button>
+                  <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }} className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors font-bold mt-1">Logout</button>
                 </div>
               </div>
             </div>
@@ -166,8 +165,8 @@ export default function StudentManagement() {
                 <div className="relative">
                   <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none"><Filter size={16} /></div>
                   <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="pl-9 pr-8 py-2 bg-white border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm font-semibold text-slate-600 appearance-none cursor-pointer">
-                    <option value="Tất cả">Tất cả lớp</option>
-                    {uniqueClasses.map(c => (<option key={c} value={c}>Lớp {c}</option>))}
+                    <option value="All">All classes</option>
+                    {uniqueClasses.map(c => (<option key={c} value={c}>Class {c}</option>))}
                   </select>
                 </div>
               )}
@@ -181,7 +180,7 @@ export default function StudentManagement() {
                   }}
                   className="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-indigo-700 flex items-center shadow-md transition-all"
                 >
-                  Thêm mới
+                  Add New
                 </button>
               )}
             </div>
@@ -192,19 +191,19 @@ export default function StudentManagement() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase font-bold text-slate-400 tracking-wider">
-                    <th className="p-4">Họ và Tên</th>
-                    <th className="p-4">Lớp</th>
-                    <th className="p-4">Thể chất</th> {/* [MỚI]: Cột thể chất */}
-                    <th className="p-4">Ghi chú Dị ứng</th>
-                    <th className="p-4 text-center">Bán trú</th>
-                    {userRole === 'Admin' && <th className="p-4 text-right">Thao tác</th>}
+                    <th className="p-4">Full Name</th>
+                    <th className="p-4">Class</th>
+                    <th className="p-4">Physical</th> {/* [NEW]: Physical column */}
+                    <th className="p-4">Allergy Notes</th>
+                    <th className="p-4 text-center">Semi-boarding</th>
+                    {userRole === 'Admin' && <th className="p-4 text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-sm">
                   {isLoading ? (
-                    <tr><td colSpan={userRole === 'Admin' ? "6" : "5"} className="p-10 text-center text-slate-400 italic">Đang tải hồ sơ học sinh...</td></tr>
+                    <tr><td colSpan={userRole === 'Admin' ? "6" : "5"} className="p-10 text-center text-slate-400 italic">Loading student profiles...</td></tr>
                   ) : filteredStudents.length === 0 ? (
-                    <tr><td colSpan={userRole === 'Admin' ? "6" : "5"} className="p-10 text-center text-slate-400 font-medium">Chưa có học sinh nào.</td></tr>
+                    <tr><td colSpan={userRole === 'Admin' ? "6" : "5"} className="p-10 text-center text-slate-400 font-medium">No students found.</td></tr>
                   ) : filteredStudents.map((student) => (
                     <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="p-4">
@@ -213,7 +212,7 @@ export default function StudentManagement() {
                       </td>
                       <td className="p-4 text-slate-600 font-bold">{student.classRoom}</td>
                       
-                      {/* [MỚI]: Render cột thể chất */}
+                      {/* [NEW]: Render physical column */}
                       <td className="p-4">
                         <div className="flex flex-col">
                           <span className="text-slate-600 text-xs font-semibold">{student.height ? `${student.height} cm` : '-- cm'}</span>
@@ -227,12 +226,12 @@ export default function StudentManagement() {
                              {student.allergies}
                           </span>
                         ) : (
-                          <span className="text-slate-300 text-xs font-normal">Không</span>
+                          <span className="text-slate-300 text-xs font-normal">None</span>
                         )}
                       </td>
                       <td className="p-4 text-center">
                         <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${student.status === 'Registered' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                          {student.status === 'Registered' ? 'Đang hoạt động' : 'Nghỉ'}
+                          {student.status === 'Registered' ? 'Active' : 'Off'}
                         </span>
                       </td>
                       
@@ -245,7 +244,7 @@ export default function StudentManagement() {
                                 setFormData({
                                   fullName: student.fullName, classRoom: student.classRoom,
                                   allergies: student.allergies, status: student.status, parentId: '',
-                                  height: student.height, weight: student.weight // Truyền dữ liệu cũ vào form
+                                  height: student.height, weight: student.weight // Pass old data to form
                                 });
                                 setIsModalOpen(true);
                               }}
@@ -266,55 +265,55 @@ export default function StudentManagement() {
         </main>
       </div>
 
-      {/* MODAL THÊM/SỬA */}
+      {/* ADD/EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-md shadow-sm w-full max-w-md animate-in zoom-in duration-200 overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                {editingId ? 'Sửa thông tin học sinh' : 'Thêm học sinh mới'}
+                {editingId ? 'Edit Student Profile' : 'Add New Student'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20}/></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Họ và Tên</label>
-                  <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="VD: Nguyễn Minh Anh"/>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full Name</label>
+                  <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="Ex: John Doe"/>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lớp</label>
-                    <input required type="text" value={formData.classRoom} onChange={e => setFormData({...formData, classRoom: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="VD: 1A"/>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Class</label>
+                    <input required type="text" value={formData.classRoom} onChange={e => setFormData({...formData, classRoom: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="Ex: 1A"/>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái Bán trú</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Semi-boarding Status</label>
                     <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none bg-white">
-                      <option value="Registered">Đang hoạt động</option><option value="Not_Registered">Chưa đăng ký</option>
+                      <option value="Registered">Active</option><option value="Not_Registered">Not Registered</option>
                     </select>
                   </div>
                 </div>
 
-                {/* [MỚI]: Row nhập Chiều cao, Cân nặng */}
+                {/* [NEW]: Height, Weight input row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Chiều cao (cm)</label>
-                    <input type="number" min="0" value={formData.height} onChange={e => setFormData({...formData, height: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="VD: 120"/>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height (cm)</label>
+                    <input type="number" min="0" value={formData.height} onChange={e => setFormData({...formData, height: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="Ex: 120"/>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cân nặng (kg)</label>
-                    <input type="number" min="0" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="VD: 25"/>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Weight (kg)</label>
+                    <input type="number" min="0" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="Ex: 25"/>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ghi chú Dị ứng (nếu có)</label>
-                  <input type="text" value={formData.allergies} onChange={e => setFormData({...formData, allergies: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="VD: Tôm, Đậu phộng..."/>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Allergy Notes (if any)</label>
+                  <input type="text" value={formData.allergies} onChange={e => setFormData({...formData, allergies: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm outline-none focus:border-indigo-500" placeholder="Ex: Shrimp, Peanuts..."/>
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded transition-all">Hủy</button>
-                  <button type="submit" className="flex-1 py-2.5 font-bold bg-indigo-600 text-white rounded shadow-sm shadow-indigo-100 hover:bg-indigo-700 transition-all">Lưu hồ sơ</button>
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded transition-all">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 font-bold bg-indigo-600 text-white rounded shadow-sm shadow-indigo-100 hover:bg-indigo-700 transition-all">Save Profile</button>
                 </div>
             </form>
           </div>
@@ -336,7 +335,6 @@ export default function StudentManagement() {
 function NavItem({ icon: Icon, label, active, onClick, expanded }) {
   return (
     <button onClick={onClick} className={`flex items-center gap-3 w-full p-3 rounded font-semibold text-[13px] transition-all relative group ${active ? 'bg-indigo-50 text-indigo-600 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
-      <Icon size={18} className="shrink-0" />
       <span className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${expanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>{label}</span>
       {!expanded && <div className="absolute left-16 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[100]">{label}</div>}
     </button>

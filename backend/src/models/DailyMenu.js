@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/DailyMenu.js
+// Path: backend/src/models/DailyMenu.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -9,15 +9,15 @@ const DailyMenu = sequelize.define('DailyMenu', {
         autoIncrement: true
     },
     MenuDate: {
-        type: DataTypes.DATEONLY, // Chỉ lưu ngày (YYYY-MM-DD)
+        type: DataTypes.DATEONLY, // Stores date only (YYYY-MM-DD)
         allowNull: false,
         unique: true 
     },
     TotalCalories: {
-        type: DataTypes.FLOAT, // Calo suất mặn
+        type: DataTypes.FLOAT, // Calories for standard meal
         defaultValue: 0
     },
-    VegCalories: { // [BỔ SUNG] Calo suất chay
+    VegCalories: { // Calories for vegetarian meal
         type: DataTypes.FLOAT,
         defaultValue: 0
     },
@@ -25,17 +25,17 @@ const DailyMenu = sequelize.define('DailyMenu', {
         type: DataTypes.ENUM('Draft', 'Submitted', 'Approved', 'Rejected'),
         defaultValue: 'Draft'
     },
-    // [BỔ SUNG] Lưu danh sách ID món mặn (VD: "1,5,8,12")
+    // List of standard dish IDs (e.g., "1,5,8,12")
     StandardDishList: {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    // [BỔ SUNG] Lưu danh sách ID món chay (VD: "2,6,9,15")
+    // List of vegetarian dish IDs (e.g., "2,6,9,15")
     VegetarianDishList: {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    // [BỔ SUNG] Lưu phản hồi từ Admin nếu bị từ chối
+    // Rejection reason from Admin if rejected
     RejectReason: {
         type: DataTypes.TEXT,
         allowNull: true

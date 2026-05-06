@@ -1,18 +1,18 @@
 const { MealRegistration, Student, User } = require('../models');
 
-// 1. Lấy danh sách thanh toán (Admin thấy hết, Giáo viên thấy lớp mình)
+// 1. Get payment list (Admin sees all, Teacher sees their class)
 exports.getAllPayments = async (req, res) => {
     try {
         const { role, userId } = req.user;
         let studentCondition = {};
 
-        // Nếu là Giáo viên, tìm đúng lớp của giáo viên đó
+        // If Teacher, find their assigned class
         if (role === 'Teacher') {
             const teacher = await User.findByPk(userId);
             if (teacher && teacher.ClassRoom) {
                 studentCondition.ClassRoom = teacher.ClassRoom;
             } else {
-                studentCondition.ClassRoom = 'NONE'; // Chưa có lớp thì ko thấy ai
+                studentCondition.ClassRoom = 'NONE'; // No class assigned, no students visible
             }
         }
 
@@ -32,7 +32,7 @@ exports.getAllPayments = async (req, res) => {
 
         const formattedData = payments.map(p => ({
             id: p.RegistrationID || p.id,
-            studentName: p.Student ? p.Student.FullName : 'Không rõ',
+            studentName: p.Student ? p.Student.FullName : 'Unknown',
             classRoom: p.Student ? p.Student.ClassRoom : '',
             parentName: (p.Student && p.Student.parent) ? p.Student.parent.FullName : '',
             parentPhone: (p.Student && p.Student.parent) ? p.Student.parent.Phone : '',
@@ -46,12 +46,12 @@ exports.getAllPayments = async (req, res) => {
 
         res.status(200).json({ data: formattedData });
     } catch (error) {
-        console.error("Lỗi lấy danh sách thanh toán:", error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error("Error fetching payment list:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-// 2. Cập nhật trạng thái (Giáo viên hoặc Admin)
+// 2. Update status (Teacher or Admin)
 exports.updatePaymentStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -62,14 +62,14 @@ exports.updatePaymentStatus = async (req, res) => {
             include: [{ model: Student }]
         });
         
-        if (!registration) return res.status(404).json({ message: 'Không tìm thấy phiếu' });
+        if (!registration) return res.status(404).json({ message: 'Registration not found' });
 
         if (role === 'Teacher') {
-            // 1. Chỉ thu tiền mặt
+            // 1. Only cash collections
             if (registration.PaymentMethod !== 'Cash') {
-                return res.status(403).json({ message: 'Giáo viên chỉ được phép thu tiền mặt.' });
+                return res.status(403).json({ message: 'Teachers are only allowed to collect cash.' });
             }
-            // 2. Phải thu trước ngày 25 của tháng trước đó (Ví dụ: phiếu tháng 5 thì hạn chót là 25/4)
+            // 2. Must collect before the 25th of the previous month (e.g., May registration deadline is April 25th)
             const [year, month] = registration.Month.split('-').map(Number);
             let deadlineYear = year;
             let deadlineMonth = month - 1;
@@ -78,32 +78,32 @@ exports.updatePaymentStatus = async (req, res) => {
                 deadlineYear -= 1;
             }
             const deadline = new Date(deadlineYear, deadlineMonth - 1, 25);
-            deadline.setHours(23, 59, 59, 999); // Hết ngày 25
+            deadline.setHours(23, 59, 59, 999); // End of day 25
 
             if (new Date() > deadline) {
-                return res.status(403).json({ message: 'Đã hết hạn thu tiền (hạn chót là ngày 25 của tháng trước).' });
+                return res.status(403).json({ message: 'Payment collection period has expired (deadline is the 25th of the previous month).' });
             }
-            // 3. Phải thuộc lớp chủ nhiệm
+            // 3. Must belong to assigned class
             const teacher = await User.findByPk(userId);
             if (!teacher || teacher.ClassRoom !== registration.Student.ClassRoom) {
-                return res.status(403).json({ message: 'Bạn không có quyền thao tác trên lớp này.' });
+                return res.status(403).json({ message: 'You do not have permission to operate on this class.' });
             }
         }
 
         await registration.update({ Status: status });
-        res.status(200).json({ message: 'Cập nhật trạng thái thành công!' });
+        res.status(200).json({ message: 'Status updated successfully!' });
     } catch (error) {
-        console.error("Lỗi cập nhật trạng thái thanh toán:", error);
-        res.status(500).json({ message: 'Lỗi server' });
+        console.error("Error updating payment status:", error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
-// 3. Admin chốt số lượng báo Bếp
+// 3. Admin confirms quantities to notify Kitchen
 exports.informKitchen = async (req, res) => {
     try {
-        // Tại đây sau này sếp có thể code thêm logic gửi Email/Zalo ZNS cho Bếp
-        res.status(200).json({ message: 'Đã tổng hợp số liệu và gửi thông báo cho bộ phận Bếp thành công!' });
+        // Logic for sending Email/Zalo ZNS to Kitchen can be added here
+        res.status(200).json({ message: 'Data summarized and notification sent to Kitchen department successfully!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi báo bếp' });
+        res.status(500).json({ message: 'Error while notifying kitchen' });
     }
 };

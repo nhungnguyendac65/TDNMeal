@@ -7,7 +7,7 @@ const { connectDB } = require('./src/config/database');
 const { syncDatabase, User, Student, AllergyCategory, Supplier, Ingredient, Dish, DailyMenu } = require('./src/models');
 
 // =====================================
-// 1. IMPORT CÁC ROUTES
+// 1. IMPORT ROUTES
 // =====================================
 const authRoutes = require('./src/routes/authRoutes');
 const studentRoutes = require('./src/routes/studentRoutes');
@@ -15,22 +15,25 @@ const kitchenRoutes = require('./src/routes/kitchenRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const registrationRoutes = require('./src/routes/registrationRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
+const compression = require('compression');
 const path = require('path');
 const app = express();
 
 // =====================================
-// 2. KHAI BÁO SỬ DỤNG ROUTES 
+// 2. CONFIGURE ROUTES
 // =====================================
-// 1. Mở cửa CORS cho Frontend truy cập
+// 0. Enable Gzip compression for faster loading on slow networks
+app.use(compression());
+
+// 1. Enable CORS for Frontend access
 app.use(cors());
 
-// 2. Dịch dữ liệu JSON 
-app.use(express.json());
+// 2. Parse JSON dataapp.use(express.json());
 
-// 3. Mở khóa thư mục chứa hình ảnh
+// 3. Serve static images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 4. Các đường dẫn API
+// 4. API Endpoints
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/kitchen', kitchenRoutes);
@@ -40,12 +43,12 @@ app.use('/api/menus', require('./src/routes/menuRoutes'));
 app.use('/api/schedule', require('./src/routes/scheduleRoutes'));
 app.use('/api/payments', require('./src/routes/paymentRoutes'));
 
-// 5. PHỤC VỤ FRONTEND (Dành cho Production)
+// 5. SERVE FRONTEND (For Production)
 if (process.env.NODE_ENV === 'production') {
-    // Trỏ đến thư mục build của frontend (giả sử bạn copy thư mục dist của Vite vào đây)
+    // Point to frontend build folder (assuming Vite dist is copied here)
     app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-    // Bất kỳ route nào không phải API thì trả về file index.html của React
+    // Any non-API route returns React's index.html
     app.use((req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
@@ -53,10 +56,10 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 // =====================================
-// 3. CÁC HÀM TẠO DỮ LIỆU MẪU (SEEDING)
+// 3. SEEDING FUNCTIONS
 // =====================================
 const seedData = async () => {
-    // 1. Tạo phụ huynh 1
+    // 1. Create parent 1
     let parent = await User.findOne({ where: { Phone: '0901234567' } });
     if (!parent) {
         const hashedPassword = await bcrypt.hash('123456', 10);
@@ -68,7 +71,7 @@ const seedData = async () => {
         });
     }
 
-    // 2. Tạo học sinh con của phụ huynh này
+    // 2. Create student for this parent
     const checkStudent = await Student.findOne({ where: { ParentID: parent.UserID || parent.id } });
     if (!checkStudent) {
         await Student.create({
@@ -93,14 +96,14 @@ const seedData = async () => {
         for (const item of allergyList) {
             await AllergyCategory.upsert(item);
         }
-        console.log('Đã đồng bộ chuẩn 8 Nhóm Dị Ứng');
+        console.log('Synced 8 standard Allergy Groups');
     } catch (err) {
-        console.error('Lỗi khi tạo nhóm dị ứng:', err);
+        console.error('Error creating allergy categories:', err);
     }
 };
 
 const seedKitchenData = async () => {
-    // 1. Tạo tài khoản Bếp
+    // 1. Create Kitchen account
     const checkKitchen = await User.findOne({ where: { Phone: '0988888888' } });
     if (!checkKitchen) {
         const hashPass = await bcrypt.hash('123456', 10);
@@ -111,7 +114,7 @@ const seedKitchenData = async () => {
             Role: 'Kitchen'
         });
     }
-    // 2. Tạo Nhà cung cấp & Nguyên liệu mẫu (nếu chưa có)
+    // 2. Create sample Supplier & Ingredients (if none exist)
     const countSupplier = await Supplier.count();
     if (countSupplier === 0) {
         await Supplier.create({ SupplierName: 'Công ty Thực phẩm Sạch Đà Nẵng', CertStatus: 'VietGAP' });
@@ -123,13 +126,13 @@ const seedKitchenData = async () => {
 };
 
 const seedFreshTestAccount2 = async () => {
-    // Tạo thêm 1 tài khoản mới tinh nữa để test Onboarding
+    // Create a fresh test account for Onboarding testing
     const checkUser = await User.findOne({ where: { Phone: '0922333777' } });
 
     if (!checkUser) {
         const hashedPassword = await bcrypt.hash('123456', 10);
 
-        // 1. Tạo Phụ huynh
+        // 1. Create Parent
         const newParent = await User.create({
             FullName: 'Nguyễn Ngọc Nữ',
             Phone: '0922333777',
@@ -137,19 +140,19 @@ const seedFreshTestAccount2 = async () => {
             Role: 'Parent'
         });
 
-        // 2. Tạo Học sinh
+        // 2. Create Student
         await Student.create({
             FullName: 'Phan Hồng Như',
             Gender: 'Female',
             ParentID: newParent.UserID || newParent.id
         });
 
-        console.log('Đã tạo acc TEST ONBOARDING SỐ 3: Nguyễn Ngọc Nữ - Phan Hồng Như (0922333777 / 123456)');
+        console.log('Created TEST ONBOARDING ACCOUNT 3: Nguyen Ngoc Nu - Phan Hong Nhu (0922333777 / 123456)');
     }
 };
 
 // =====================================
-// 4. KHỞI ĐỘNG SERVER
+// 4. START SERVER
 // =====================================
 const PORT = process.env.PORT || 5000;
 const { startCronJobs } = require('./src/services/cronService');
@@ -159,12 +162,12 @@ connectDB().then(async () => {
 
     await seedData();
     await seedKitchenData();
-    await seedFreshTestAccount2(); // Gọi hàm tạo nick test
+    await seedFreshTestAccount2(); // Call test account creation
 
-    // Khởi chạy các Cron Job tự động
+    // Start automatic Cron Jobs
     startCronJobs();
 
     app.listen(PORT, () => {
-        console.log(`Server đang chạy tại http://localhost:${PORT}`);
+        console.log(`Server is running at http://localhost:${PORT}`);
     });
 });

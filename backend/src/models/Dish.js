@@ -1,4 +1,4 @@
-// Đường dẫn: backend/src/models/Dish.js
+// Path: backend/src/models/Dish.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -18,18 +18,18 @@ const Dish = sequelize.define('Dish', {
     },
     Type: {
         type: DataTypes.STRING,
-        allowNull: true // Mặn, Chay, Rau, Canh, Phụ
+        allowNull: true // Standard, Veggie, Vegetable, Soup, Side
     },
     DishType: {
         type: DataTypes.STRING,
-        allowNull: true // Dành cho các tính năng cũ của Admin/Phụ huynh nếu có
+        allowNull: true // For legacy features if any
     },
     Calories: {
         type: DataTypes.FLOAT,
         allowNull: false
     },
     MainIngredients: {
-        type: DataTypes.TEXT, // Dùng TEXT để chứa được văn bản rất dài và xuống dòng thoải mái
+        type: DataTypes.TEXT, // Use TEXT for long multi-line text
         allowNull: true
     },
     SupplierName: {
@@ -41,7 +41,7 @@ const Dish = sequelize.define('Dish', {
         allowNull: true
     },
     ImageUrl: {
-        type: DataTypes.STRING, // Chứa đường dẫn ảnh
+        type: DataTypes.STRING, // Image path
         allowNull: true
     },
     Description: {
