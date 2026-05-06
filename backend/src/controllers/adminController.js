@@ -182,8 +182,9 @@ exports.getAdminStats = async (req, res) => {
         if (todayMenuData) {
             let standardDishes = [];
             let vegDishes = [];
-            try { standardDishes = JSON.parse(todayMenuData.StandardDishList || '[]'); } catch(e){}
-            try { vegDishes = JSON.parse(todayMenuData.VegetarianDishList || '[]'); } catch(e){}
+            // Dishes are stored as comma-separated ID strings (e.g., "1,5,8,12")
+            standardDishes = (todayMenuData.StandardDishList || '').split(',').filter(Boolean);
+            vegDishes = (todayMenuData.VegetarianDishList || '').split(',').filter(Boolean);
             
             todayMenu = {
                 status: todayMenuData.Status,
