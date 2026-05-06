@@ -10,12 +10,12 @@ const autoApproveMenus = async () => {
             const menuDate = new Date(menu.MenuDate);
             const day = menuDate.getDay();
             
-            // Tìm ngày Thứ 2 của tuần chứa thực đơn này
+            // Find the Monday of the week containing this menu
             const diffToMonday = menuDate.getDate() - day + (day === 0 ? -6 : 1);
             const mondayOfMenuWeek = new Date(menuDate.setDate(diffToMonday));
             mondayOfMenuWeek.setHours(0, 0, 0, 0);
 
-            // Nếu ngày hiện tại đã bước sang Thứ 2 của tuần đó (tức là đã qua hạn chót Chủ nhật tuần trước)
+            // If current date has reached Monday of that week (past Sunday deadline)
             if (now >= mondayOfMenuWeek) {
                 await menu.update({ Status: 'Approved' });
                 approvedCount++;
@@ -32,12 +32,12 @@ const autoApproveMenus = async () => {
 };
 
 const startCronJobs = () => {
-    console.log('[CRON] Khởi động hệ thống kiểm tra và tự động duyệt thực đơn...');
+    console.log('[CRON] Starting automatic menu approval system...');
     
-    // Chạy lần đầu ngay khi khởi động server
+    // Run once on server startup
     autoApproveMenus();
     
-    // Sau đó lặp lại mỗi 1 giờ
+    // Then repeat every hour
     setInterval(autoApproveMenus, 60 * 60 * 1000); 
 };
 

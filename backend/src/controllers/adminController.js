@@ -1,6 +1,6 @@
 const { User } = require('../models');
 
-// 1. Lấy danh sách tất cả tài khoản
+// 1. Get all accounts list
 exports.getAllUsers = async (req, res) => {
     try {
         const { Student } = require('../models');
@@ -34,7 +34,7 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
-// 2. Tạo tài khoản mới
+// 2. Create new account
 
 exports.createUser = async (req, res) => {
     try {
@@ -71,7 +71,7 @@ exports.createUser = async (req, res) => {
     }
 };
 
-// 3. Cập nhật thông tin
+// 3. Update account info
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -121,7 +121,7 @@ exports.updateUser = async (req, res) => {
     }
 };
 
-// 4. Xóa tài khoản
+// 4. Delete account
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -135,20 +135,20 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-// 5. Thống kê cho Dashboard Admin
+// 5. Admin Dashboard Statistics
 const { Student, MealRegistration, DailyMenu, StudentAllergy, AllergyCategory, DailyMealSelection } = require('../models');
 
 exports.getAdminStats = async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
 
-        // 1. Tổng học sinh đăng ký
+        // 1. Total registered students
         const totalStudents = await Student.count();
 
-        // 2. Số lượng đăng ký ăn trong ngày (DailyMealSelection cho ngày hôm nay)
+        // 2. Number of meal registrations today (DailyMealSelection for today)
         const mealsToday = await DailyMealSelection.count({ where: { Date: today } });
 
-        // 3. Thực đơn chờ phê duyệt
+        // 3. Menus pending approval
         const pendingMenusRaw = await DailyMenu.findAll({ 
             where: { Status: 'Submitted' },
             order: [['MenuDate', 'ASC']]
@@ -156,10 +156,10 @@ exports.getAdminStats = async (req, res) => {
         
         const pendingMenus = pendingMenusRaw.map(m => ({ id: m.MenuID, date: m.MenuDate, status: m.Status }));
 
-        // 4. Các khoản chưa thanh toán
+        // 4. Unpaid registrations
         const unpaidCount = await MealRegistration.count({ where: { Status: 'Pending Payment' } });
 
-        // 5. Cảnh báo dị ứng
+        // 5. Allergy warnings
         const recentAllergiesRaw = await StudentAllergy.findAll({
             include: [
                 { model: Student, attributes: ['FullName'] },
@@ -176,7 +176,7 @@ exports.getAdminStats = async (req, res) => {
             note: a.SpecificNote || ''
         }));
 
-        // 6. Thực đơn hôm nay
+        // 6. Today's menu
         const todayMenuData = await DailyMenu.findOne({ where: { MenuDate: today } });
         let todayMenu = null;
         if (todayMenuData) {
@@ -193,7 +193,7 @@ exports.getAdminStats = async (req, res) => {
             };
         }
 
-        // 7. Mock biểu đồ
+        // 7. Mock chart data
         const barData = [
             { day: 'T2', meals: 120 },
             { day: 'T3', meals: 135 },

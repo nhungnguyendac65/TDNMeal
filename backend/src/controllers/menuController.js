@@ -1,7 +1,7 @@
 const { DailyMealSelection, MealRegistration, Student, Dish, DailyMenu, StudentAllergy, AllergyCategory } = require('../models');
 
 // ==========================================
-// 1. THUẬT TOÁN RÀ SOÁT DỊ ỨNG CHUYÊN SÂU (GIỮ NGUYÊN)
+// 1. ADVANCED ALLERGY SCREENING ALGORITHM
 // ==========================================
 exports.checkMenuAllergy = async (req, res) => {
     try {
@@ -81,32 +81,32 @@ exports.checkMenuAllergy = async (req, res) => {
 };
 
 // ==========================================
-// 2. LƯU THỰC ĐƠN (NÂNG CẤP ĐỂ LƯU 8 MÓN & CHECK TRÙNG)
+// 2. SAVE MENU (UPGRADED TO SAVE 8 DISHES & CHECK DUPLICATES)
 // ==========================================
 exports.createMenu = async (req, res) => {
     try {
-        // Nhận thêm vegetarianDishIds từ Frontend gửi lên
+        // Receive vegetarianDishIds from Frontend
         const { MenuDate, standardDishIds, vegetarianDishIds } = req.body;
 
         if (!MenuDate) return res.status(400).json({ message: 'Vui lòng chọn ngày!' });
         
-        // 1. Kiểm tra xem ngày này đã có thực đơn chưa để tránh lỗi 500 (Trùng khóa ngoại/Unique)
+        // 1. Check if menu already exists for this date to avoid unique constraint errors
         const existingMenu = await DailyMenu.findOne({ where: { MenuDate } });
         if (existingMenu) {
             return res.status(400).json({ message: 'Ngày này đã có thực đơn! Hãy chọn ngày khác.' });
         }
 
-        // 2. Tính Calo cho Suất Mặn (Dùng làm chuẩn hiển thị chính)
+        // 2. Calculate Calories for Standard Meal (Main display standard)
         const stdDishes = await Dish.findAll({ where: { DishID: standardDishIds } });
         const stdCalories = stdDishes.reduce((sum, d) => sum + (Number(d.Calories) || 0), 0);
 
-        // 3. Lưu vào Database
+        // 3. Save to Database
         const newMenu = await DailyMenu.create({
             MenuDate,
             TotalCalories: stdCalories, // Lưu calo suất mặn vào cột chính
             Status: 'Submitted',
-            // Lưu danh sách ID món dưới dạng chuỗi để sau này Frontend cần thì lấy ra dùng
-            // (Đảm bảo model DailyMenu.js của bạn có 2 cột này)
+            // Store list of dish IDs as a string for Frontend use
+            // (Ensure DailyMenu.js model has these 2 columns)
             StandardDishList: standardDishIds.join(','),
             VegetarianDishList: vegetarianDishIds ? vegetarianDishIds.join(',') : ''
         });
@@ -119,7 +119,7 @@ exports.createMenu = async (req, res) => {
 };
 
 // ==========================================
-// 3. LẤY TRẠNG THÁI THỰC ĐƠN THEO NGÀY (GIỮ NGUYÊN)
+// 3. GET MENU STATUS BY DATE
 // ==========================================
 exports.getMenuByDate = async (req, res) => {
     try {
@@ -141,12 +141,12 @@ exports.getMenuByDate = async (req, res) => {
 };
 
 // ==========================================
-// 4. ADMIN: DUYỆT HOẶC TỪ CHỐI (THÊM MỚI)
+// 4. ADMIN: APPROVE OR REJECT
 // ==========================================
 exports.reviewMenu = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, rejectReason } = req.body; // status: 'Approved' hoặc 'Rejected'
+        const { status, rejectReason } = req.body; // status: 'Approved' or 'Rejected'
 
         const menu = await DailyMenu.findByPk(id);
         if (!menu) return res.status(404).json({ message: 'Không tìm thấy thực đơn.' });
@@ -164,7 +164,7 @@ exports.reviewMenu = async (req, res) => {
 };
 
 // ==========================================
-// 5. LẤY TẤT CẢ THỰC ĐƠN
+// 5. GET ALL MENUS
 // ==========================================
 exports.getMenus = async (req, res) => {
     try {
@@ -172,7 +172,7 @@ exports.getMenus = async (req, res) => {
             order: [['MenuDate', 'DESC']]
         });
         
-        // Lấy toàn bộ món ăn để ánh xạ (map)
+        // Fetch all dishes for mapping
         const dishes = await Dish.findAll();
         const dishMap = {};
         dishes.forEach(d => { dishMap[d.DishID] = d; });

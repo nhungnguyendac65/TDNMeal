@@ -15,7 +15,7 @@ export default function DailyMenuCreator() {
   const location = useLocation();
   const [lang, setLang] = useState('vi');
 
-  // --- STATES DỮ LIỆU THẬT ---
+  // --- REAL DATA STATES ---
   const [dishes, setDishes] = useState([]);
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
 
@@ -33,7 +33,7 @@ export default function DailyMenuCreator() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Tính ngày Thứ 2 của tuần tiếp theo (Hạn chế tạo menu cho tuần hiện tại/quá khứ)
+  // Calculate Next Monday (Restricted to future menus)
   const minDate = useMemo(() => {
     const now = new Date();
     const day = now.getDay();
@@ -43,13 +43,13 @@ export default function DailyMenuCreator() {
     return nextMonday.toISOString().split('T')[0];
   }, []);
 
-  // 8 Ô CHỌN MÓN (4 MẶN - 4 CHAY)
+  // 8 MENU SLOTS (4 STANDARD - 4 VEGETARIAN)
   const [menuSlots, setMenuSlots] = useState({
     std_main: null, std_veg: null, std_soup: null, std_side: null, // Suất Mặn
     veg_main: null, veg_veg: null, veg_soup: null, veg_side: null  // Suất Chay
   });
 
-  // 1. TẢI THƯ VIỆN MÓN ĂN KHI VÀO TRANG
+  // 1. LOAD DISH LIBRARY ON MOUNT
   useEffect(() => {
     const fetchDishes = async () => {
       try {
@@ -63,19 +63,19 @@ export default function DailyMenuCreator() {
     };
     fetchDishes();
 
-    // Kiểm tra xem có ngày được truyền qua URL không (từ WeeklyMenu)
+    // Check for date parameter in URL (from WeeklyMenu)
     const queryParams = new URLSearchParams(location.search);
     const dateParam = queryParams.get('date');
 
     if (dateParam) {
       setMenuDate(dateParam);
     } else {
-      // Mặc định chọn ngày Thứ 2 của tuần tới
+      // Default to next Monday
       setMenuDate(minDate);
     }
   }, [minDate, location.search]);
 
-  // 2. KIỂM TRA TRẠNG THÁI THỰC ĐƠN KHI ĐỔI NGÀY
+  // 2. CHECK MENU STATUS ON DATE CHANGE
   useEffect(() => {
     const fetchMenuStatus = async () => {
       if (!menuDate || dishes.length === 0) return;
@@ -88,7 +88,7 @@ export default function DailyMenuCreator() {
             setRejectReason(fetchedMenu.RejectReason || 'Thực đơn cần điều chỉnh lại định lượng dinh dưỡng.');
           }
 
-          // [ĐỒNG BỘ] Load lại chi tiết món ăn từ chuỗi ID
+          // [SYNC] Load dish details from ID string
           const stdIds = (fetchedMenu.StandardDishList || '').split(',').filter(Boolean);
           const vegIds = (fetchedMenu.VegetarianDishList || '').split(',').filter(Boolean);
 
@@ -105,7 +105,7 @@ export default function DailyMenuCreator() {
             veg_side: findDish(vegIds[3]) || null
           });
         } else {
-          // Ngày mới, chưa có menu
+          // New date, no menu yet
           setStatus('Draft');
           setRejectReason('');
           setMenuSlots({
@@ -120,7 +120,7 @@ export default function DailyMenuCreator() {
     fetchMenuStatus();
   }, [menuDate, dishes]);
 
-  // --- TÍNH TOÁN CALO & KIỂM TRA ĐIỀU KIỆN ---
+  // --- CALORIES & VALIDATION CALCULATIONS ---
   const { stdCalories, vegCalories, validation } = useMemo(() => {
     let stdCals = 0;
     let vegCals = 0;
@@ -159,7 +159,7 @@ export default function DailyMenuCreator() {
   const isReadOnly = status === 'Submitted' || status === 'Approved' || isCurrentOrPastWeek;
   const canSubmit = validation.isComplete && validation.hasSuppliers && !isReadOnly;
 
-  // --- XỬ LÝ SỰ KIỆN ---
+  // --- EVENT HANDLERS ---
   const handleLogout = () => { localStorage.clear(); navigate('/login'); };
 
   const handleDishSelect = (slotKey, dishId) => {
@@ -208,12 +208,12 @@ export default function DailyMenuCreator() {
     } finally { setIsSaving(false); }
   };
 
-  // --- COMPONENT CON: Ô CHỌN MÓN ---
+  // --- SUB-COMPONENT: DISH SELECTION BLOCK ---
   const DishBlock = ({ title, slotKey, filterType, colorObj }) => {
     const currentDish = menuSlots[slotKey];
     const availableDishes = Array.isArray(filterType) ? dishes.filter(d => filterType.includes(d.type)) : dishes.filter(d => d.type === filterType);
 
-    // GIAO DIỆN KHÓA (READ-ONLY) HIỂN THỊ DẠNG THẺ THÔNG TIN
+    // READ-ONLY INTERFACE (Info Cards)
     if (isReadOnly) {
       return (
         <div className="flex flex-col bg-gray-50 rounded border border-gray-200 p-4 shadow-sm h-full opacity-90">
@@ -240,7 +240,7 @@ export default function DailyMenuCreator() {
       );
     }
 
-    // GIAO DIỆN DRAFT MỞ KHÓA BÌNH THƯỜNG
+    // DRAFT INTERFACE (Editable)
     return (
       <div className={`flex flex-col bg-white rounded border-2 p-4 shadow-sm h-full transition-all ${!currentDish ? 'border-dashed border-gray-300 bg-gray-50/30' :
         (!currentDish.supplier || !currentDish.calories) ? 'border-yellow-300' : 'border-white'
@@ -316,7 +316,7 @@ export default function DailyMenuCreator() {
         </div>
       </nav>
 
-      {/* 2. TOOLBAR & THANH TIẾN ĐỘ TRẠNG THÁI */}
+      {/* 2. TOOLBAR & STATUS STEPPER */}
       <div className="bg-white border-b border-gray-200 shadow-sm z-20">
         <div className="max-w-[1400px] mx-auto px-6 py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
 
@@ -325,7 +325,7 @@ export default function DailyMenuCreator() {
               <h1 className="text-2xl font-bold text-gray-900">Lên thực đơn ngày</h1>
             </div>
             <div className="hidden sm:block w-px h-8 bg-gray-300"></div>
-            {/* Lịch */}
+            {/* Calendar */}
             <div className={`flex items-center border rounded px-4 py-2 transition-colors cursor-pointer shadow-inner ${isCurrentOrPastWeek ? 'bg-gray-100 border-gray-300' : 'bg-gray-50 border-gray-200 hover:border-orange-300'}`}>
               <Calendar size={18} className={isCurrentOrPastWeek ? 'text-gray-400 mr-2' : 'text-orange-500 mr-2'} />
               <input
@@ -339,11 +339,11 @@ export default function DailyMenuCreator() {
             </div>
           </div>
 
-          {/* Stepper Trạng Thái */}
+          {/* Status Stepper */}
           <div className="flex items-center w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
             <div className="flex items-center gap-2 sm:gap-3 bg-gray-50/80 p-2 rounded-md border border-gray-100">
 
-              {/* Bước 1 */}
+              {/* Step 1 */}
               <div className={`px-4 py-2 rounded text-sm font-bold flex items-center transition-all shadow-sm ${status === 'Draft' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-white text-green-600 border border-green-200'
                 }`}>
                 1. Lên thực đơn ngày
@@ -351,7 +351,7 @@ export default function DailyMenuCreator() {
 
               <div className={`w-6 sm:w-10 h-[2px] rounded-full ${status === 'Draft' ? 'bg-gray-200' : 'bg-green-400'}`}></div>
 
-              {/* Bước 2 */}
+              {/* Step 2 */}
               <div className={`px-4 py-2 rounded text-sm font-bold flex items-center transition-all shadow-sm ${status === 'Submitted' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
                 (status === 'Approved' ? 'bg-white text-green-600 border border-green-200' : 'bg-white text-gray-400 border border-gray-200')
                 }`}>
@@ -360,7 +360,7 @@ export default function DailyMenuCreator() {
 
               <div className={`w-6 sm:w-10 h-[2px] rounded-full ${status === 'Approved' ? 'bg-green-400' : 'bg-gray-200'}`}></div>
 
-              {/* Bước 3 */}
+              {/* Step 3 */}
               <div className={`px-4 py-2 rounded text-sm font-bold flex items-center transition-all shadow-sm ${status === 'Approved' ? 'bg-green-100 text-green-700 border border-green-200' :
                 (status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-white text-gray-400 border border-gray-200')
                 }`}>
@@ -382,10 +382,36 @@ export default function DailyMenuCreator() {
         </div>
       )}
 
+      {/* 2.5 DISPLAY MEAL COUNTS (Only when viewed from weekly menu) */}
+      {new URLSearchParams(location.search).has('view') && (
+        <div className="px-4 sm:px-6 mt-4">
+          <div className="bg-white border border-indigo-100 rounded-lg p-4 shadow-sm flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-700">Tổng đăng ký:</span>
+              <span className="text-indigo-700 font-black text-lg">{mealCounts.Standard + mealCounts.Vegetarian}</span>
+            </div>
+            <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Suất Mặn:</span>
+              <span className="text-orange-600 font-bold">{mealCounts.Standard}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Suất Chay:</span>
+              <span className="text-green-600 font-bold">{mealCounts.Vegetarian}</span>
+            </div>
+            <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-500">Không ăn:</span>
+              <span className="text-gray-600 font-bold">{mealCounts.None}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 3. MAIN WORKSPACE */}
       <main className="flex-1 px-4 sm:px-6 py-6 flex flex-col xl:flex-row gap-6 max-w-[1400px] mx-auto w-full">
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CỘT MẶN */}
+          {/* STANDARD COLUMN */}
           <div className="bg-orange-50/40 border border-orange-100 p-5 rounded-md flex flex-col gap-4">
             <h2 className="text-lg font-black text-orange-800 flex items-center border-b border-orange-200/60 pb-3 uppercase">Suất tiêu chuẩn (mặn)</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -395,7 +421,7 @@ export default function DailyMenuCreator() {
               <DishBlock title="Tráng Miệng" slotKey="std_side" filterType="Phụ" colorObj={{ text: 'text-purple-900', icon: 'text-purple-500' }} />
             </div>
           </div>
-          {/* CỘT CHAY */}
+          {/* VEGETARIAN COLUMN */}
           <div className="bg-green-50/40 border border-green-100 p-5 rounded-md flex flex-col gap-4">
             <h2 className="text-lg font-black text-green-800 flex items-center border-b border-green-200/60 pb-3 uppercase">Suất chay</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -407,7 +433,7 @@ export default function DailyMenuCreator() {
           </div>
         </div>
 
-        {/* SIDEBAR BÊN PHẢI */}
+        {/* RIGHT SIDEBAR */}
         <div className="w-full xl:w-[360px] flex flex-col gap-5">
           <div className="bg-[#fff9e6] border border-[#fce49c] rounded-md p-5 shadow-sm">
             <h2 className="text-sm font-bold text-yellow-800 uppercase tracking-wider mb-3">Dinh dưỡng (kcal)</h2>

@@ -4,23 +4,22 @@ const menuController = require('../controllers/menuController');
 const { verifyToken, checkRole } = require('../middlewares/authMiddleware');
 
 // ==========================================
-// QUẢN LÝ THỰC ĐƠN (Mounted at /api/menus)
+// MENU MANAGEMENT (Mounted at /api/menus)
 // ==========================================
 
-// 1. Lấy toàn bộ danh sách thực đơn (Để hiện lên Lịch ở Frontend)
-// Sếp nhớ kiểm tra menuController.js đã có hàm getMenus chưa nhé
+// 1. Get all menus (For Calendar display on Frontend)
 router.get('/', verifyToken, checkRole(['Admin', 'Kitchen', 'Teacher']), menuController.getMenus);
 
-// 2. Kiểm tra dị ứng chuyên sâu trước khi lưu
+// 2. Advanced allergy screening before saving
 router.post('/allergy-check', verifyToken, checkRole(['Kitchen']), menuController.checkMenuAllergy);
 
-// 3. Tạo thực đơn mới
+// 3. Create new menu
 router.post('/', verifyToken, checkRole(['Kitchen']), menuController.createMenu);
 
-// 4. Lấy chi tiết thực đơn theo ngày cụ thể
+// 4. Get menu details by specific date
 router.get('/date/:date', verifyToken, checkRole(['Admin', 'Kitchen', 'Teacher']), menuController.getMenuByDate);
 
-// 5. Phê duyệt hoặc từ chối thực đơn (Admin duyệt, Kitchen xem)
+// 5. Approve or Reject menu (Admin approves, Kitchen views)
 router.put('/:id', verifyToken, checkRole(['Admin', 'Kitchen']), menuController.reviewMenu);
 
 module.exports = router;

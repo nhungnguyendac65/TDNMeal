@@ -2,23 +2,23 @@ const { DailyMealSelection, MealRegistration, Student, User, Dish, Ingredient, D
 const { Op } = require('sequelize');
 
 // ==========================================
-// LẤY DỮ LIỆU TỔNG QUAN CHO DASHBOARD BẾP
+// GET OVERVIEW DATA FOR KITCHEN DASHBOARD
 // ==========================================
 exports.getKitchenDashboard = async (req, res) => {
     try {
         const { StudentAllergy, AllergyCategory } = require('../models');
         const today = new Date().toISOString().split('T')[0];
 
-        // 1. Lấy thông tin thực đơn ngày hôm nay
+        // 1. Get today's menu info
         const todayMenu = await DailyMenu.findOne({ where: { MenuDate: today } });
         
-        // 2. Thống kê suất ăn từ DailyMealSelection
+        // 2. Meal statistics from DailyMealSelection
         const standardMeals = await DailyMealSelection.count({ where: { Date: today, MealType: 'Standard' } });
         const vegetarianMeals = await DailyMealSelection.count({ where: { Date: today, MealType: 'Vegetarian' } });
         const totalMeals = standardMeals + vegetarianMeals;
 
-        // 3. Lấy danh sách dị ứng hôm nay
-        // Lấy tất cả học sinh có đăng ký ăn hôm nay
+        // 3. Get today's allergy list
+        // Get all students registered to eat today
         const studentIdsToday = (await DailyMealSelection.findAll({
             where: { Date: today },
             attributes: ['StudentID', 'MealType']
@@ -42,7 +42,7 @@ exports.getKitchenDashboard = async (req, res) => {
             }
         }
 
-        // 4. Lấy danh sách món ăn hôm nay
+        // 4. Get today's dishes list
         let todayDishes = [];
         if (todayMenu) {
             const dishIds = (todayMenu.StandardDishList || '').split(',').filter(Boolean);
@@ -53,7 +53,7 @@ exports.getKitchenDashboard = async (req, res) => {
             }));
         }
 
-        // 5. Cảnh báo nguyên liệu thấp
+        // 5. Low ingredient warnings
         const allIngredients = await Ingredient.findAll();
         const ingredientWarnings = allIngredients
             .filter(item => (item.StockQuantity || 0) <= (item.MinStockLevel || 5))
@@ -62,7 +62,7 @@ exports.getKitchenDashboard = async (req, res) => {
                 issue: `Sắp hết: ${item.StockQuantity} ${item.Unit} (Tối thiểu: ${item.MinStockLevel})`
             }));
 
-        // 6. Dữ liệu biểu đồ Xu hướng Suất ăn
+        // 6. Meal Trend chart data
         const barData = [
             { day: 'T2', meals: totalMeals > 0 ? Math.floor(totalMeals * 0.9) : 120 },
             { day: 'T3', meals: totalMeals > 0 ? Math.floor(totalMeals * 0.95) : 135 },
@@ -76,7 +76,7 @@ exports.getKitchenDashboard = async (req, res) => {
             { name: 'Suất chay', value: vegetarianMeals || 45 }
         ];
 
-        // 7. [BỔ SUNG] Xu hướng dinh dưỡng (Calo) 5 thực đơn gần nhất
+        // 7. [ADDITIONAL] Nutrition trend (Calories) for last 5 menus
         const recentMenus = await DailyMenu.findAll({
             limit: 5,
             order: [['MenuDate', 'DESC']],
@@ -87,7 +87,7 @@ exports.getKitchenDashboard = async (req, res) => {
             calories: m.TotalCalories
         }));
 
-        // 8. [BỔ SUNG] Phân bổ món ăn theo loại (Trong thư viện)
+        // 8. [ADDITIONAL] Dish distribution by type (In library)
         const dishCounts = await Dish.findAll({
             attributes: ['Type', [require('sequelize').fn('COUNT', 'Type'), 'count']],
             group: ['Type']
@@ -99,7 +99,7 @@ exports.getKitchenDashboard = async (req, res) => {
             value: parseInt(c.get('count'))
         }));
 
-        // 9. [BỔ SUNG] Trạng thái kho (Top 5 nguyên liệu thấp nhất)
+        // 9. [ADDITIONAL] Inventory status (Top 5 lowest ingredients)
         const inventoryStockData = allIngredients
             .sort((a, b) => (a.StockQuantity - a.MinStockLevel) - (b.StockQuantity - b.MinStockLevel))
             .slice(0, 5)
@@ -148,7 +148,7 @@ exports.getKitchenDashboard = async (req, res) => {
 };
 
 // ==========================================
-// 2. LẤY DANH SÁCH MÓN ĂN TỪ THƯ VIỆN
+// 2. GET ALL DISHES FROM LIBRARY
 // ==========================================
 exports.getAllDishes = async (req, res) => {
     try {
@@ -165,7 +165,7 @@ exports.getAllDishes = async (req, res) => {
             ingredients: d.MainIngredients || 'Đang cập nhật...',
             supplier: d.SupplierName || 'Đang cập nhật...',
             allergies: d.Allergies ? d.Allergies.split(',').map(a => a.trim()) : [],
-            ImageUrl: d.ImageUrl // TRUYỀN HÌNH ẢNH QUA FRONTEND
+            ImageUrl: d.ImageUrl // PASS IMAGE TO FRONTEND
         }));
 
         res.status(200).json({ data: formattedDishes });
@@ -176,13 +176,13 @@ exports.getAllDishes = async (req, res) => {
 };
 
 // ==========================================
-// 3. THÊM MÓN ĂN MỚI
+// 3. ADD NEW DISH
 // ==========================================
 exports.createDish = async (req, res) => {
     try {
         const { name, nameEn, type, calories, ingredients, supplier, allergies } = req.body;
 
-        // Lấy đường dẫn file nếu có người dùng upload từ Frontend
+        // Get file path if user uploaded from Frontend
         const imageUrl = req.file ? `/uploads/dishes/${req.file.filename}` : null;
 
         const newDish = await Dish.create({
@@ -204,7 +204,7 @@ exports.createDish = async (req, res) => {
 };
 
 // ==========================================
-// 4. CẬP NHẬT MÓN ĂN
+// 4. UPDATE DISH
 // ==========================================
 exports.updateDish = async (req, res) => {
     try {
@@ -216,7 +216,7 @@ exports.updateDish = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy món ăn này!' });
         }
 
-        // Lấy đường dẫn hình mới nếu có upload, không thì giữ nguyên hình cũ
+        // Get new image path if uploaded, otherwise keep old image
         const imageUrl = req.file ? `/uploads/dishes/${req.file.filename}` : dish.ImageUrl;
 
         await dish.update({
@@ -238,7 +238,7 @@ exports.updateDish = async (req, res) => {
 };
 
 // ==========================================
-// 5. XÓA MÓN ĂN
+// 5. DELETE DISH
 // ==========================================
 exports.deleteDish = async (req, res) => {
     try {

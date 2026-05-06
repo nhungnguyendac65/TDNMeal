@@ -14,7 +14,7 @@ const getSchoolDays = (year, month) => {
     return days;
 };
 
-// 1. API Lấy thông tin & Trạng thái phiếu
+// 1. API Get registration info & Status
 exports.getRegistrationContext = async (req, res) => {
     try {
         const { studentId, month } = req.query; 
@@ -44,7 +44,7 @@ exports.getRegistrationContext = async (req, res) => {
             isRegistered: !!existing,
             registrationStatus: existing ? existing.Status : null,
             paymentMethod: existing ? existing.PaymentMethod : null,
-            checkoutUrl: existing ? existing.PayOSCheckoutUrl : null, // Trả về link thanh toán nếu có
+            checkoutUrl: existing ? existing.PayOSCheckoutUrl : null, // Return payment link if exists
             totalDays,
             totalPrice,
             hasAllergy: student.HasAllergy || false,
@@ -55,7 +55,7 @@ exports.getRegistrationContext = async (req, res) => {
     }
 };
 
-// 2. API Tạo phiếu đăng ký (Mặc định Pending)
+// 2. API Create registration (Default Pending)
 exports.createRegistration = async (req, res) => {
     try {
         const { StudentID, Month, PaymentMethod } = req.body;
@@ -73,14 +73,14 @@ exports.createRegistration = async (req, res) => {
         let payosLink = null;
         let orderCode = null;
 
-        // NẾU LÀ CHUYỂN KHOẢN -> TẠO LINK PAYOS
+        // IF PAYMENT METHOD IS TRANSFER -> CREATE PAYOS LINK
         if (PaymentMethod === 'Transfer') {
-            // PayOS orderCode phải là số nguyên tối đa 10 chữ số
+            // PayOS orderCode must be an integer, max 10 digits
             orderCode = Number(String(Date.now()).slice(-9)); 
             
             const student = await Student.findByPk(StudentID);
             
-            // PayOS chỉ chấp nhận mô tả KHÔNG DẤU, không ký tự đặc biệt
+            // PayOS only accepts ASCII descriptions (no accents or special characters)
             const removeAccents = (str) => {
                 return str.normalize('NFD')
                           .replace(/[\u0300-\u036f]/g, '')
@@ -99,13 +99,13 @@ exports.createRegistration = async (req, res) => {
                 cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/parent/registrations`,
             };
 
-            console.log('[PayOS] Đang tạo link thanh toán:', paymentBody);
+            console.log('[PayOS] Creating payment link:', paymentBody);
             
             try {
                 const linkData = await payos.paymentRequests.create(paymentBody);
                 payosLink = linkData.checkoutUrl;
             } catch (payosErr) {
-                console.error('[PayOS] Lỗi tạo link:', payosErr.message, payosErr.data);
+                console.error('[PayOS] Error creating link:', payosErr.message, payosErr.data);
                 throw new Error(`PayOS Error: ${payosErr.message}`);
             }
         }
@@ -124,7 +124,7 @@ exports.createRegistration = async (req, res) => {
         return res.status(201).json({ 
             message: 'Đăng ký thành công.', 
             data: newReg,
-            checkoutUrl: payosLink // Trả về cho Frontend redirect
+            checkoutUrl: payosLink // Return for Frontend redirect
         });
     } catch (error) {
         console.error('Lỗi PayOS/DB:', error);
@@ -135,20 +135,20 @@ exports.createRegistration = async (req, res) => {
     }
 };
 
-// 3. API Webhook nhận thông báo từ PayOS
+// 3. Webhook API to receive notifications from PayOS
 exports.handlePayOSWebhook = async (req, res) => {
     try {
         const { data, code } = req.body;
         
-        // Code 00 là thành công
+        // Code 00 means success
         if (code === "00" && data) {
             const orderCode = data.orderCode;
             
-            // Tìm phiếu đăng ký có orderCode này
+            // Find registration with this orderCode
             const reg = await MealRegistration.findOne({ where: { PayOSOrderCode: orderCode } });
             if (reg) {
                 await reg.update({ Status: 'Paid' });
-                console.log(`[PayOS] Đã xác nhận thanh toán cho OrderCode: ${orderCode}`);
+                console.log(`[PayOS] Confirmed payment for OrderCode: ${orderCode}`);
             }
         }
         
@@ -159,7 +159,7 @@ exports.handlePayOSWebhook = async (req, res) => {
     }
 };
 
-// 4. API [DEV ONLY] - Giả lập GVCN hoặc Ngân hàng đã xác nhận nộp tiền
+// 4. API [DEV ONLY] - Mock Teacher or Bank payment confirmation
 exports.mockApprovePayment = async (req, res) => {
     try {
         const { StudentID, Month } = req.body;
@@ -173,7 +173,7 @@ exports.mockApprovePayment = async (req, res) => {
     }
 };
 
-// 5. API [DEV ONLY] - Xóa sạch toàn bộ dữ liệu test
+// 5. API [DEV ONLY] - Clear all test data
 exports.clearTestData = async (req, res) => {
     try {
         const { DailyMealSelection } = require('../models'); 

@@ -57,7 +57,7 @@ export default function PaymentManagement() {
     }
   };
 
-  // ADMIN: Hàm chốt số lượng báo bếp
+  // ADMIN: Inform kitchen function
   const handleInformKitchen = async () => {
     if (!window.confirm("Chốt danh sách đăng ký hiện tại và gửi thông báo chuẩn bị suất ăn cho bộ phận Bếp?")) return;
     try {
@@ -68,14 +68,14 @@ export default function PaymentManagement() {
     }
   };
 
-  // HÀM XUẤT FILE CSV
+  // CSV EXPORT FUNCTION
   const exportToCSV = () => {
     if (filteredPayments.length === 0) {
       showToast("Không có dữ liệu để xuất!", "error");
       return;
     }
 
-    // Tạo BOM để Excel đọc được tiếng Việt có dấu
+    // Create BOM for UTF-8 support in Excel (Vietnamese accents)
     const BOM = "\uFEFF";
     const headers = ['Học sinh', 'Lớp', 'Phụ huynh', 'SĐT', 'Tháng', 'Tổng tiền (VND)', 'Phương thức', 'Trạng thái'];
 
@@ -83,7 +83,7 @@ export default function PaymentManagement() {
     filteredPayments.forEach(p => {
       const statusTxt = p.status === 'Paid' ? 'Đã thanh toán' : p.status === 'Cancelled' ? 'Đã hủy' : 'Chờ thanh toán';
       const methodTxt = p.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản';
-      // Bọc chuỗi trong nháy kép để tránh lỗi dấu phẩy trong tên
+      // Wrap strings in double quotes to handle commas in names
       csvRows.push(`"${p.studentName}","${p.classRoom}","${p.parentName}","${p.parentPhone}","${p.month}","${p.totalAmount}","${methodTxt}","${statusTxt}"`);
     });
 
@@ -197,7 +197,7 @@ export default function PaymentManagement() {
               <p className="text-slate-500 text-sm mt-1">{userRole === 'Teacher' ? 'Xác nhận tiền mặt và xuất danh sách lớp.' : 'Theo dõi thu tiền và chốt số lượng báo bếp.'}</p>
             </div>
 
-            {/* BỘ LỌC KỲ THU TIỀN ĐƯỢC LÀM NỔI BẬT */}
+            {/* HIGHLIGHTED PERIOD FILTER */}
             <div className="flex items-center gap-3 bg-indigo-50 p-1.5 rounded border border-indigo-100 shadow-sm">
               <span className="text-sm font-semibold text-indigo-800 px-3">Kỳ thu tiền:</span>
               <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="px-4 py-2 bg-white border border-indigo-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700 cursor-pointer min-w-[160px]">
@@ -234,12 +234,12 @@ export default function PaymentManagement() {
                 <option value="Transfer">Chuyển khoản</option>
               </select>
 
-              {/* NÚT XUẤT EXCEL CHO CẢ ADMIN VÀ GIÁO VIÊN */}
+              {/* CSV EXPORT BUTTON FOR ADMIN & TEACHER */}
               <button onClick={exportToCSV} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded text-sm font-bold hover:bg-emerald-100 flex items-center gap-2 transition-all">
                 Xuất CSV
               </button>
 
-              {/* NÚT BÁO BẾP CHỈ DÀNH CHO ADMIN */}
+              {/* INFORM KITCHEN BUTTON FOR ADMIN ONLY */}
               {userRole === 'Admin' && (
                 <button onClick={handleInformKitchen} className="bg-indigo-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2 transition-all relative">
                   Chốt báo Bếp
@@ -259,7 +259,7 @@ export default function PaymentManagement() {
             </div>
           )}
 
-          {/* WIDGET THỐNG KÊ */}
+          {/* STATS WIDGETS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white p-6 rounded-md border border-slate-200 shadow-sm flex items-center gap-4">
 
@@ -277,7 +277,7 @@ export default function PaymentManagement() {
             </div>
           </div>
 
-          {/* BẢNG DỮ LIỆU */}
+          {/* DATA TABLE */}
           <section className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -299,7 +299,7 @@ export default function PaymentManagement() {
                   ) : filteredPayments.map((payment) => {
 
                     const isExpired = userRole === 'Teacher' && new Date().getDate() >= 25;
-                    // Logic: Chỉ cho phép duyệt thủ công với Tiền mặt. Admin duyệt được hết, Giáo viên duyệt nếu chưa quá hạn.
+                    // Logic: Only manual confirmation allowed for Cash. Admin can confirm all, Teacher can confirm if not expired.
                     const canConfirm = payment.paymentMethod === 'Cash' && (userRole === 'Admin' || (userRole === 'Teacher' && !isExpired));
 
                     return (
@@ -358,7 +358,7 @@ export default function PaymentManagement() {
                               </button>
                             ) : null
                           ) : (
-                            // Nếu là Giáo viên mà phụ huynh chọn Chuyển khoản hoặc hết hạn
+                            // If Teacher and parent chose Transfer or expired
                             <span className="text-[10px] text-slate-400 italic">
                               {userRole === 'Teacher' && isExpired ? 'Đã hết hạn' : 'Chờ kế toán'}
                             </span>

@@ -15,7 +15,7 @@ export default function UserManagement() {
   const [lang, setLang] = useState('vi');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
-  // Lấy thông tin user hiện tại để phân quyền Sidebar
+  // Get current user info for Sidebar permissions
   const currentUser = JSON.parse(localStorage.getItem('user')) || { role: 'Guest' };
   const userRole = currentUser.role;
 
@@ -75,7 +75,7 @@ export default function UserManagement() {
     } catch (error) { showToast("Lỗi xóa", "error"); }
   };
 
-  // Logic lọc dữ liệu (kết hợp Tìm kiếm chữ + Lọc dropdown)
+  // Data filtering logic (Search text + Role dropdown)
   const filteredUsers = users.filter(item => 
     (item.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || item.username?.toLowerCase().includes(searchTerm.toLowerCase())) &&
     (filterRole === 'Tất cả' || item.role === filterRole)
@@ -84,7 +84,7 @@ export default function UserManagement() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex  text-slate-700">
       
-      {/* SIDEBAR BẢN CHUẨN ĐỒNG BỘ 100% VỚI CÁC TRANG KHÁC */}
+      {/* STANDARD SIDEBAR SYNCED 100% WITH OTHER PAGES */}
       <aside 
         onMouseEnter={() => setIsSidebarExpanded(true)} 
         onMouseLeave={() => setIsSidebarExpanded(false)}
@@ -149,7 +149,7 @@ export default function UserManagement() {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* THANH TÌM KIẾM */}
+              {/* SEARCH BAR */}
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
                 <input 
@@ -161,7 +161,7 @@ export default function UserManagement() {
                 />
               </div>
 
-              {/* [ĐÃ BỔ SUNG]: BỘ LỌC THEO VAI TRÒ (ROLE) */}
+              {/* ROLE FILTER DROPDOWN */}
               <div className="relative hidden sm:block">
                 <div className="absolute left-3 top-2.5 text-slate-400 pointer-events-none">
                   <Filter size={16} />
@@ -179,7 +179,7 @@ export default function UserManagement() {
                 </select>
               </div>
 
-              {/* NÚT THÊM MỚI */}
+              {/* ADD NEW BUTTON */}
               <button 
                 onClick={() => {
                   setEditingId(null); 
@@ -265,7 +265,7 @@ export default function UserManagement() {
         </main>
       </div>
 
-      {/* MODAL THÊM/SỬA */}
+      {/* ADD/EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-md shadow-sm w-full max-w-md animate-in zoom-in duration-200 overflow-hidden">
@@ -361,7 +361,7 @@ export default function UserManagement() {
   );
 }
 
-// [ĐÃ SỬA]: Thêm whitespace-nowrap vào Label để chống lỗi phình to Sidebar
+// NavItem component for Sidebar
 function NavItem({ icon: Icon, label, active, onClick, expanded }) {
   return (
     <button 

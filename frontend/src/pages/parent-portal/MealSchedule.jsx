@@ -23,12 +23,9 @@ export default function MealSchedule() {
 
   useEffect(() => {
     const getDaysInWeek = (date) => {
-      const day = date.getDay(); 
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
-      const monday = new Date(date.setDate(diff));
+      const day = date.getDay(); // Sunday is 0, Monday is 1, etc.      const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start      const monday = new Date(date.setDate(diff));
       const days = [];
-      for (let i = 0; i < 5; i++) { 
-        const nextDay = new Date(monday);
+      for (let i = 0; i < 5; i++) { // Mon to Fri        const nextDay = new Date(monday);
         nextDay.setDate(monday.getDate() + i);
         days.push(nextDay);
       }
@@ -69,7 +66,7 @@ export default function MealSchedule() {
                 const selRes = await api.get(`/schedule/selections?studentId=${activeStudent}&month=${mStr}`);
                 if (Array.isArray(selRes.data.data)) {
                   selRes.data.data.forEach(item => { 
-                    // CHÍNH LÀ CHỖ NÀY ĐÂY: Cắt đuôi "T00:00..." của Database, chỉ lấy 10 ký tự YYYY-MM-DD
+                    // EXACTLY HERE: Trim the "T00:00..." tail from Database, only take 10 chars YYYY-MM-DD
                     const cleanDate = item.Date ? String(item.Date).substring(0, 10) : '';
                     if (cleanDate) {
                         newSelections[cleanDate] = item.MealType; 
@@ -78,8 +75,7 @@ export default function MealSchedule() {
                 }
               }
             } catch (e) {
-              newStatuses[mStr] = false; 
-            }
+              newStatuses[mStr] = false; // Mark as unpaid if fetch fails            }
           }
           
           setMonthStatuses(newStatuses);
@@ -90,8 +86,7 @@ export default function MealSchedule() {
               const menuRes = await api.get('/schedule/weekly-menu');
               setWeeklyMenu(menuRes.data.data || {});
             } catch (e) {
-              setWeeklyMenu({}); 
-            }
+              setWeeklyMenu({}); // Clear menu if error            }
           }
           setIsLoading(false);
         }
@@ -105,9 +100,7 @@ export default function MealSchedule() {
   const checkIsLocked = (targetDate) => {
     const now = new Date();
     const deadline = new Date(targetDate);
-    deadline.setDate(deadline.getDate() - 1); 
-    deadline.setHours(20, 0, 0, 0); 
-    return now > deadline;
+    deadline.setDate(deadline.getDate() - 1); // Previous day    deadline.setHours(20, 0, 0, 0); // 8:00 PM deadline    return now > deadline;
   };
 
   const handleSelectMeal = async (dateString, type) => {
@@ -231,17 +224,15 @@ export default function MealSchedule() {
           <div className="space-y-6">
             {weekDays.map((date) => {
               const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-              const dayMonth = dateString.substring(0, 7); 
-              const isDayPaid = monthStatuses[dayMonth]; 
-              const isLocked = checkIsLocked(date);
+              const dayMonth = dateString.substring(0, 7); // YYYY-MM              const isDayPaid = monthStatuses[dayMonth]; // Paid status for the month              const isLocked = checkIsLocked(date);
               
-              // Frontend đọc chuẩn xác 100% nhờ đã cắt đuôi T00:00:00
+              // Frontend reads accurately thanks to trimmed date suffix
               const currentChoice = selections[dateString]; 
               
               const dayNames = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
               const dayIndex = date.getDay();
               
-              // [ĐỒNG BỘ]: Lấy thực đơn thật từ database theo đúng ngày (dateString)
+              // [SYNC]: Fetch real menu from database by date (dateString)
               const menuData = weeklyMenu[dateString] || { totalCalories: 0, standardDishes: [], vegetarianDishes: [] };
               
               const rawActiveDishes = currentChoice === 'Vegetarian' ? menuData.vegetarianDishes : menuData.standardDishes;
@@ -379,7 +370,7 @@ export default function MealSchedule() {
         )}
       </main>
 
-      {/* POPUP CHI TIẾT MÓN ĂN */}
+      {/* DISH DETAIL POPUP */}
       {selectedDish && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-md max-w-md w-full overflow-hidden shadow-sm scale-in-center">
